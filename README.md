@@ -14,7 +14,9 @@ Built to stay smooth at **100,000 videos** — without shipping a single seeded 
 - **Add by link** — one URL per line; title, channel and thumbnail are fetched through a local-only
   proxy and stored offline.
 - **Import Google Takeout** — drop `watch-history.json`; it is parsed in the tab, deduplicated and
-  grouped by year, channel, or a single topic.
+  grouped by year, channel, a single topic, or **auto-detected from titles**.
+- **Auto-organize** — a local, rule-based classifier labels each title with a topic and up to five tags
+  (Rust, LLM, Finance, Ads & Promos, …). No model call, no network.
 - **3D knowledge graph** — each topic is a sphere, size is `log(video count)`. Positions are laid out
   locally; no physics loop runs while you read.
 - **Virtualized drawer** — 10–14 DOM rows whether a topic has 60 videos or 3,765.
@@ -68,6 +70,12 @@ When the server is not available, the entry is still saved with a placeholder ti
 
 The file is read in the tab; only the resulting records are written to IndexedDB. Removed/private videos
 without a URL are skipped. Re-importing the same file adds nothing — dedupe is by video id.
+
+For an existing library, open **My library → Auto-organize titles** to re-label every record from its
+title. This replaces the current topics (including “Watch History”/“Unsorted”). The classifier is
+heuristic: titles like “The Complete Rust Ecosystem” become **Rust**; “A New Paper from Meta Could
+Change LLMs” becomes **LLM** with tags `LLM, Research, Meta`. Untitled/ad-creative records fall back to
+**Other** or **Ads & Promos**.
 
 Takeout does not include duration or view counts, so those cards show channel and date only. Thumbnails
 are skipped for bulk imports to keep the database lean.

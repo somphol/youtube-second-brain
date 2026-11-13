@@ -32,13 +32,15 @@ and the watch URL. You can edit the title and topic later with the pencil icon.
 4. Export, download the archive, unzip, locate `watch-history.json`.
 5. In the app choose **My library → Import Takeout / JSON**.
 6. Pick grouping:
+   - **Auto-detect from titles** — recommended; local classifier.
    - **One topic** — everything under a topic you name.
    - **By channel** — top 24 channels, the rest as “Other channels”.
    - **By year watched** — one cluster per year.
 7. Import. Re-importing is safe: duplicates are skipped by video id.
 
-Entries without a watch URL (removed/private videos, ads) are skipped. Bulk imports do not store
-thumbnails.
+Entries without a watch URL (removed/private videos) are skipped. Bulk imports do not store thumbnails.
+For an existing library, **Auto-organize titles** re-labels every record and adds tags. It replaces the
+current topics, so export a backup first if you care about the old grouping.
 
 ## Backups and moving Macs
 

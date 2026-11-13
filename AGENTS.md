@@ -43,6 +43,9 @@ publishes the repo root. First time: **Settings → Pages → Source: GitHub Act
   (ring for ≤ 6 topics, Fibonacci sphere above).
 - **Drawer**: fixed-height virtual list (`spacer` + translated `window`); `topic.__shard` is an in-memory
   payload with `{videos}`. No shard is fetched over the network.
+- **Classifier**: `classifyTitle()` in the inline module is a local regex taxonomy (39 topics +
+  entities). It returns `{ topic, tags }`; imports use `auto` grouping by default and `autoOrganizeAll()`
+  re-labels an existing library. No network, no model.
 - **Search**: `searchTopics` filters topic names; `schedulePersonalIndex` builds a MiniSearch index over
   the library in an idle slot (deferred above 2,000 records) and `runSearch` uses it, falling back to
   substring matching until ready.
@@ -60,6 +63,8 @@ publishes the repo root. First time: **Settings → Pages → Source: GitHub Act
 - **Meta values for imported links are unknown.** Do not invent duration/views; `0` renders as absent.
 - **Virtualization math depends on `--row-h`.** Keep rendered `.vrow` count ≤ 20 and test deep scroll.
 - **All data-derived strings are escaped** before HTML interpolation.
+- **Auto-organize is destructive**: it replaces every `topicName`. Keep the confirm dialog and never run
+  it on boot. Tags are additive and searchable.
 - **Do not reintroduce `data/` fetches.** The gate asserts no `/data/` request on boot.
 - **The 100k benchmark is synthetic and labelled.** Never commit `benchmark/` or present it as real
   history.

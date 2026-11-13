@@ -1144,12 +1144,14 @@ https://www.youtube.com/shorts/…"></textarea>
     <div class="lib-status" id="libraryStatus" aria-live="polite"></div>
     <label class="lib-label" for="importGroup" style="margin-top:12px">History grouping (Takeout imports)</label>
     <select id="importGroup" class="lib-input" style="width:100%">
+      <option value="auto" selected>Auto-detect topics from titles (recommended)</option>
       <option value="single">One topic for the whole history</option>
       <option value="channel">By channel (top 24, rest grouped)</option>
       <option value="year">By year watched</option>
     </select>
 
     <div class="lib-tools">
+      <button class="lib-btn" id="libraryOrganize">Auto-organize titles</button>
       <button class="lib-btn" id="libraryImport">Import Takeout / JSON</button>
       <button class="lib-btn" id="libraryExport">Export backup</button>
       <button class="lib-btn danger" id="libraryClear">Clear library</button>
@@ -1417,6 +1419,76 @@ function updateLibraryCount() {
   if (btn) btn.setAttribute('aria-label', `My local library, ${n} ${n === 1 ? 'video' : 'videos'}`);
 }
 
+/* Local, rule-based title classifier. No model, no network. */
+const AUTO_TOPICS = [
+  { name: 'Ads & Promos', strong: [/\b\d{2,4}x\d{2,4}\b/, /_16x9|_9x16|_4x5|_1x1/, /\b(ugc|dtc|mp4|mov|cta|vo)\b/, /\b(commercial|promo|campaign|testimonial|preview|youtube premium)\b/], weak: [/\b(ad|ads|brand|subscribe|offer|sale)\b/] },
+  { name: 'Rust', strong: [/\brust\b/, /\bcargo\b/, /\bborrow checker\b/], weak: [/\btokio\b/, /\bcrates?\b/, /\bclippy\b/] },
+  { name: 'Python', strong: [/\bpython\b/, /\bdjango\b/, /\bflask\b/], weak: [/\bpandas\b/, /\bnumpy\b/, /\bpip\b/] },
+  { name: 'JavaScript', strong: [/\bjavascript\b/, /\btypescript\b/, /\bnode\.?js\b/, /\breact\b/, /\bnext\.?js\b/], weak: [/\bnpm\b/, /\bbun\b/, /\bsvelte\b/, /\bvue\b/, /\bdeno\b/] },
+  { name: 'Go', strong: [/\bgolang\b/, /\bgoroutines?\b/], weak: [/\bgo 1\.\d/, /\bgo modules?\b/] },
+  { name: 'C/C++', strong: [/\bc\+\+\b/, /\bcpp\b/, /\bcmake\b/], weak: [/\bclang\b/, /\bpointers?\b/] },
+  { name: 'Java/Kotlin', strong: [/\bjava\b/, /\bkotlin\b/, /\bspring boot\b/], weak: [/\bjvm\b/, /\bgradle\b/] },
+  { name: 'Swift/iOS', strong: [/\bswiftui\b/, /\bxcode\b/, /\bios\b/], weak: [/\bswift\b/] },
+  { name: 'Web Development', strong: [/\bcss\b/, /\bhtml\b/, /\bfrontend\b/, /\bbackend\b/, /\bweb development\b/], weak: [/\bapi\b/, /\bbrowser\b/, /\bresponsive\b/] },
+  { name: 'Databases', strong: [/\bsql\b/, /\bpostgres(?:ql)?\b/, /\bmysql\b/, /\bsqlite\b/, /\bmongodb\b/, /\bredis\b/], weak: [/\bdatabase\b/, /\bqueries\b/] },
+  { name: 'DevOps & Cloud', strong: [/\bdocker\b/, /\bkubernetes\b/, /\bk8s\b/, /\bterraform\b/, /\baws\b/, /\bazure\b/, /\bgcp\b/, /\bci\/cd\b/], weak: [/\bdevops\b/, /\bnginx\b/, /\bdeploy(?:ment)?\b/] },
+  { name: 'Linux', strong: [/\blinux\b/, /\bubuntu\b/, /\barch linux\b/, /\bkernel\b/], weak: [/\bbash\b/, /\bterminal\b/, /\bcommand line\b/] },
+  { name: 'Security', strong: [/\bsecurity\b/, /\bhacking\b/, /\bexploit\b/, /\bmalware\b/, /\bencryption\b/, /\bprivacy\b/], weak: [/\bcve\b/, /\bvpn\b/, /\bpassword\b/] },
+  { name: 'Git', strong: [/\bgit\b/, /\bgithub\b/], weak: [/\bversion control\b/, /\bmerge conflict\b/] },
+  { name: 'LLM', strong: [/\bllms?\b/, /\bgpt\b/, /\bchatgpt\b/, /\btransformers?\b/, /\brag\b/, /\bprompt engineering\b/, /\bfine-?tun(?:e|ing)\b/, /\bopenai\b/, /\bclaude\b/, /\bgemini\b/, /\bllama\b/, /\bgrok\b/, /\bcontext window\b/], weak: [/\bagents?\b/, /\btokens?\b/, /\binference\b/] },
+  { name: 'AI & ML', strong: [/\bai\b/, /\bartificial intelligence\b/, /\bmachine learning\b/, /\bdeep learning\b/, /\bneural networks?\b/, /\bpytorch\b/, /\btensorflow\b/], weak: [/\bmodels?\b/, /\btraining\b/, /\bdatasets?\b/] },
+  { name: 'Research', strong: [/\bresearch paper\b/, /\barxiv\b/, /\bpaper\b/, /\bbenchmarks?\b/], weak: [/\bresearch\b/, /\bstudy\b/, /\bsota\b/] },
+  { name: 'Computer Vision', strong: [/\bcomputer vision\b/, /\bdiffusion models?\b/, /\bstable diffusion\b/, /\bmidjourney\b/, /\bimage generation\b/], weak: [/\bimage recognition\b/, /\bvideo generation\b/] },
+  { name: 'Physics', strong: [/\bphysics\b/, /\bquantum\b/, /\brelativity\b/, /\bparticle\b/], weak: [/\bcern\b/, /\bgravity\b/] },
+  { name: 'Space', strong: [/\bspacex\b/, /\bnasa\b/, /\bmars\b/, /\bmoon\b/, /\btelescope\b/, /\buniverse\b/], weak: [/\borbit\b/, /\brocket\b/] },
+  { name: 'Mathematics', strong: [/\bmath(?:ematics)?\b/, /\bcalculus\b/, /\blinear algebra\b/, /\btheorem\b/], weak: [/\bgeometry\b/, /\bequations?\b/] },
+  { name: 'Biology', strong: [/\bbiology\b/, /\bdna\b/, /\bgenes?\b/, /\bcrispr\b/], weak: [/\bcells?\b/, /\bprotein\b/] },
+  { name: 'Climate & Energy', strong: [/\bclimate\b/, /\bsolar\b/, /\bbatter(?:y|ies)\b/, /\bnuclear\b/, /\benergy\b/], weak: [/\bcarbon\b/, /\brenewable\b/] },
+  { name: 'Finance & Investing', strong: [/\bstocks?\b/, /\binvest(?:ing|ment|or)?\b/, /\bportfolio\b/, /\bdividend\b/, /\betf\b/, /\bfinance\b/, /\binflation\b/, /\binterest rates?\b/], weak: [/\bmarket\b/, /\beconomy\b/, /\bmoney\b/] },
+  { name: 'Crypto', strong: [/\bbitcoin\b/, /\bcrypto\b/, /\bethereum\b/, /\bblockchain\b/], weak: [/\bdefi\b/, /\bnft\b/, /\baltcoins?\b/] },
+  { name: 'Business & Startups', strong: [/\bstartups?\b/, /\bbusiness\b/, /\bfounders?\b/, /\bsaas\b/, /\bmarketing\b/, /\brevenue\b/], weak: [/\bproduct\b/, /\bsales\b/, /\bgrowth\b/] },
+  { name: 'Career & Productivity', strong: [/\bcareers?\b/, /\bjob interviews?\b/, /\bresume\b/, /\bproductivity\b/, /\bhabits?\b/], weak: [/\bfocus\b/, /\btime management\b/] },
+  { name: 'Health & Fitness', strong: [/\bfitness\b/, /\bworkouts?\b/, /\bdiet\b/, /\bnutrition\b/, /\bsleep\b/, /\bhealth\b/], weak: [/\bmuscles?\b/, /\bdoctors?\b/] },
+  { name: 'Cooking & Food', strong: [/\brecipes?\b/, /\bcooking\b/, /\bfood\b/, /\bchef\b/, /\bbak(?:e|ing)\b/], weak: [/\bkitchen\b/] },
+  { name: 'Travel', strong: [/\btravel\b/, /\bhotels?\b/, /\bflights?\b/, /\bthailand\b/, /\bbangkok\b/], weak: [/\btrips?\b/, /\bcity guide\b/] },
+  { name: 'Music', strong: [/\bmusic\b/, /\bsongs?\b/, /\bguitar\b/, /\bpiano\b/, /\balbums?\b/], weak: [/\bconcert\b/, /\bspotify\b/] },
+  { name: 'Film & TV', strong: [/\bmovies?\b/, /\bfilms?\b/, /\btrailers?\b/, /\bnetflix\b/, /\banime\b/], weak: [/\bseries\b/, /\bcinema\b/] },
+  { name: 'Gaming', strong: [/\bgaming\b/, /\bplaystation\b/, /\bxbox\b/, /\bnintendo\b/, /\bsteam\b/], weak: [/\bgames?\b/, /\bminecraft\b/] },
+  { name: 'Sports', strong: [/\bfootball\b/, /\bsoccer\b/, /\bbasketball\b/, /\btennis\b/, /\bf1\b/, /\bformula 1\b/], weak: [/\bsports?\b/, /\bmatch\b/] },
+  { name: 'Cars & EVs', strong: [/\btesla\b/, /\belectric vehicles?\b/, /\bcar reviews?\b/], weak: [/\bengines?\b/, /\bdriving\b/, /\bev\b/] },
+  { name: 'Photography', strong: [/\bphotography\b/, /\bcameras?\b/, /\blens(?:es)?\b/, /\blightroom\b/], weak: [/\bphotoshop\b/, /\bshot\b/] },
+  { name: 'Design', strong: [/\bdesign\b/, /\bui\b/, /\bux\b/, /\bfigma\b/, /\btypography\b/], weak: [/\bcolors?\b/, /\blayout\b/] },
+  { name: 'History', strong: [/\bhistory\b/, /\bancient\b/, /\bempires?\b/, /\bwars?\b/], weak: [/\b20th century\b/, /\bcivilizations?\b/] },
+  { name: 'Thailand', strong: [/\bthailand\b/, /\bthai\b/, /\bbangkok\b/, /ไทย/], weak: [/\bphuket\b/, /\bchiang mai\b/] },
+  { name: 'DIY & Home', strong: [/\bdiy\b/, /\bwoodworking\b/, /\brepairs?\b/, /\bhome improvement\b/], weak: [/\bgarage\b/, /\btools\b/] }
+];
+const AUTO_ENTITIES = [
+  { name: 'Meta', re: /\bmeta\b|\bfacebook\b/ }, { name: 'Google', re: /\bgoogle\b|\balphabet\b/ },
+  { name: 'OpenAI', re: /\bopenai\b/ }, { name: 'Anthropic', re: /\banthropic\b/ },
+  { name: 'Microsoft', re: /\bmicrosoft\b/ }, { name: 'Apple', re: /\bapple\b/ },
+  { name: 'Nvidia', re: /\bnvidia\b/ }, { name: 'Amazon', re: /\bamazon\b/ },
+  { name: 'Tesla', re: /\btesla\b/ }, { name: 'SpaceX', re: /\bspacex\b/ },
+  { name: 'Netflix', re: /\bnetflix\b/ }, { name: 'TikTok', re: /\btiktok\b/ },
+  { name: 'Samsung', re: /\bsamsung\b/ }, { name: 'xAI', re: /\bxai\b|\bgrok\b/ }
+];
+
+function classifyTitle(title) {
+  const text = ` ${String(title || '').toLowerCase().replace(/[\u2019]/g, "'")} `;
+  const scored = [];
+  for (const t of AUTO_TOPICS) {
+    let score = 0;
+    for (const re of t.strong) if (re.test(text)) score += 3;
+    for (const re of t.weak) if (re.test(text)) score += 1;
+    if (score) scored.push({ name: t.name, score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  const primary = scored.length && scored[0].score >= 3 ? scored[0].name : 'Other';
+  const tags = [primary];
+  for (const item of scored.slice(0, 3)) tags.push(item.name);
+  for (const entity of AUTO_ENTITIES) if (entity.re.test(text)) tags.push(entity.name);
+  return { topic: primary, tags: [...new Set(tags)].slice(0, 5) };
+}
+
 function normaliseRecord(record, fallbackTopic = 'Unsorted', source = 'manual') {
   const id = record.id || parseYouTubeId(record.url || record.titleUrl || '');
   if (!id) return null;
@@ -1443,6 +1515,7 @@ function normaliseRecord(record, fallbackTopic = 'Unsorted', source = 'manual') 
     duration: Number(record.duration) || 0,
     views: Number(record.views) || 0,
     type: record.type || 'video',
+    tags: Array.isArray(record.tags) ? [...new Set(record.tags.map(String))].slice(0, 6) : [],
     url: record.url || `https://www.youtube.com/watch?v=${id}`
   };
 }
@@ -1454,6 +1527,7 @@ function mergeLibraryRecords(records, fallbackTopic = 'Unsorted', source = 'manu
   for (const raw of records) {
     const rec = normaliseRecord(raw, fallbackTopic, source);
     if (!rec) { skipped++; continue; }
+    if (!rec.tags.length) rec.tags = classifyTitle(rec.title).tags;
     if (existing.has(rec.id)) { skipped++; continue; }
     existing.add(rec.id);
     state.library.videos.push(rec);
@@ -1653,7 +1727,7 @@ function schedulePersonalIndex() {
   const build = () => {
     try {
       const ms = new window.MiniSearch({
-        idField: 'id', fields: ['title', 'channel', 'topicName'], storeFields: ['id'],
+        idField: 'id', fields: ['title', 'channel', 'topicName', 'tags'], storeFields: ['id'],
         searchOptions: { prefix: true, fuzzy: 0.15, boost: { title: 2 } }
       });
       ms.addAll(state.library.videos);
@@ -1725,7 +1799,7 @@ function renderLibraryList() {
   const shown = videos.slice(0, 100);
   let html = '';
   for (const v of shown) {
-    const meta = [v.channel, v.topicName, v.published ? relDate(v.published) : ''].filter(Boolean).join(' · ');
+    const meta = [v.topicName, ...(v.tags || []).filter((t) => t !== v.topicName).slice(0, 2), v.published ? relDate(v.published) : ''].filter(Boolean).join(' · ');
     html += `<div class="lib-item">
       ${libraryThumb(v)}
       <div class="lib-main">
@@ -1826,8 +1900,11 @@ function takeoutToRecords(list, group = 'single', topic = 'Watch history') {
     if (!id) continue;
     const channel = entry.subtitles?.[0]?.name || entry.channel || 'Unknown channel';
     const when = entry.time || entry.addedAt || entry.published;
+    const auto = classifyTitle(entry.title || entry.name || '');
     let topicName = topic || 'Watch history';
-    if (group === 'year') {
+    if (group === 'auto') {
+      topicName = auto.topic;
+    } else if (group === 'year') {
       const year = when ? String(when).slice(0, 4) : '';
       topicName = /^\d{4}$/.test(year) ? year : 'Unknown year';
     } else if (group === 'channel') {
@@ -1840,6 +1917,7 @@ function takeoutToRecords(list, group = 'single', topic = 'Watch history') {
       addedAt: when,
       published: when ? String(when).slice(0, 10) : undefined,
       topicName,
+      tags: auto.tags,
       source: 'takeout'
     });
   }
@@ -1868,7 +1946,7 @@ async function importLibraryFile(file) {
     if (!list) throw new Error('Expected a Takeout array or an exported { videos: [...] } file');
 
     const topicInput = (document.getElementById('libraryTopic').value || '').trim();
-    const group = document.getElementById('importGroup')?.value || 'single';
+    const group = document.getElementById('importGroup')?.value || 'auto';
     let records;
     let skipped = 0;
     if (isTakeout) {
@@ -1916,6 +1994,25 @@ async function clearLibraryData() {
   activateDataset(state.personal.manifest);
   libraryStatus('Library cleared from this browser.', 'ok');
   toast('Local library cleared');
+}
+
+async function autoOrganizeAll() {
+  const n = state.library.videos.length;
+  if (!n) { libraryStatus('Nothing to organize yet.', 'error'); return; }
+  if (!confirm(`Re-label all ${n} videos from their titles? This replaces current topics, including “Watch History” and “Unsorted”.`)) return;
+  for (const v of state.library.videos) {
+    const c = classifyTitle(v.title);
+    v.topicName = c.topic;
+    v.tags = c.tags;
+  }
+  await saveLibrary();
+  buildPersonalDataset();
+  activateDataset(state.personal.manifest);
+  renderLibraryList();
+  const top = [...state.personal.topics].sort((a, b) => b.count - a.count).slice(0, 6)
+    .map((t) => `${t.name} (${fmtNum(t.count)})`).join(' · ');
+  libraryStatus(`Re-labeled ${fmtNum(n)} videos into ${state.personal.topics.length} topics. ${top}`, 'ok');
+  toast(`Organized into ${state.personal.topics.length} topics`);
 }
 
 async function mergeLibraryForTest(records, topic = 'Tests') {
@@ -2991,7 +3088,8 @@ const runSearch = debounce(async (q) => {
     videos = state.library.videos.filter((v) =>
       v.title.toLowerCase().includes(needle) ||
       String(v.channel || '').toLowerCase().includes(needle) ||
-      String(v.topicName || '').toLowerCase().includes(needle)
+      String(v.topicName || '').toLowerCase().includes(needle) ||
+      (v.tags || []).join(' ').toLowerCase().includes(needle)
     ).slice(0, 10);
   }
   if (seq !== state.search.seq) return;
@@ -3216,6 +3314,7 @@ $('#libraryBtn').addEventListener('click', openLibrary);
 $('#libraryClose').addEventListener('click', closeLibrary);
 $('#libraryScrim').addEventListener('click', closeLibrary);
 $('#libraryAdd').addEventListener('click', addLibraryFromUrls);
+$('#libraryOrganize').addEventListener('click', autoOrganizeAll);
 $('#libraryImport').addEventListener('click', () => document.getElementById('libraryFile').click());
 $('#libraryExport').addEventListener('click', exportLibrary);
 $('#libraryClear').addEventListener('click', async () => {
@@ -3374,6 +3473,8 @@ window.__YTB = {
   openLibrary,
   closeLibrary,
   libraryImportRecords: mergeLibraryForTest,
+  autoOrganize: autoOrganizeAll,
+  classifyTitle,
   importTakeout: importTakeoutEntries,
   resetLibrary: clearLibraryData,
   libraryInfo: () => ({

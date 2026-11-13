@@ -2,6 +2,15 @@
 
 All notable changes are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Local, rule-based title classifier: 39 topics plus entity tags (Meta, OpenAI, Nvidia, …).
+- “Auto-detect from titles” import grouping (now the default) and **Auto-organize titles** for an
+  existing library.
+- Tags are stored on records and included in local search.
+
 ## [2.0.0] — 2026-11-13
 
 ### Changed

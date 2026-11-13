@@ -13,6 +13,7 @@ no account and no seeded corpus.
   "channelId": "personal",          // not fetched for oEmbed imports
   "thumb": "data:image/jpeg;base64,…", // optional, ~10–25 KB
   "topicName": "Music",              // becomes a graph node
+  "tags": ["Music", "Thailand"],     // classifier output, searchable
   "source": "manual | takeout | import | benchmark",
   "addedAt": "2026-11-13T09:30:00.000Z",
   "published": "2026-11-13",         // watch/add date when unknown
@@ -99,9 +100,15 @@ the first record wins.
 
 Grouping:
 
+- `auto` — `classifyTitle()` picks the strongest topic from a local regex taxonomy (default).
 - `single` — one topic, default `Watch history` or the value in the topic field.
 - `channel` — the 24 most frequent channels become topics; everything else becomes `Other channels`.
 - `year` — the watch year (`2021`, `2022`, …) or `Unknown year`.
+
+`classifyTitle()` scores 39 topics (strong = 3, weak = 1) plus entity tags (Meta, Google, OpenAI, …).
+A strong match (≥ 3) becomes the primary topic; otherwise `Other`. Titles that look like ad creatives
+(dimensions, `UGC`, `DTC`, `MP4`, `preview`) become `Ads & Promos`. Auto-organize replaces all topics;
+tags remain searchable.
 
 ## Backup format
 
