@@ -1,78 +1,83 @@
 # Deployment
 
-## GitHub Pages (default)
+The app is static. The only server-dependent feature is metadata fetching (`/api/oembed`) while adding
+a link. Import, storage, graph, search, bookmarks and export work without any server beyond static files.
 
-The site is pure static files. The repository root **is** the deployable artifact.
+## GitHub Pages (the public build)
 
-1. Push to `main`. The workflow at `.github/workflows/pages.yml` uploads the root and deploys it.
+1. Push to `main`; `.github/workflows/pages.yml` uploads the repository root.
 2. First time only: **Settings → Pages → Source: GitHub Actions**.
-3. Wait for the `pages` environment URL. Current deployment: <https://somphol.github.io/youtube-second-brain/>.
+3. The site opens with an empty library for every visitor; each visitor's data stays in their browser.
 
-The workflow has no install step, no build command and no secrets. `node_modules/` is excluded by `.gitignore` and never uploaded because the artifact path is the repository root; add an exclusion list if you keep local tooling outside `node_modules`.
+Live: <https://somphol.github.io/youtube-second-brain/>
 
-### Caching
+On Pages there is no `/api/oembed`. Adding a URL by hand saves a URL-only record with a placeholder
+title; Takeout import is fully client-side and is the recommended path there.
 
-GitHub Pages serves JSON and HTML with revalidation and gzip/brotli negotiation. Assets are content-addressed only by the immutable `data/VERSION` digest, not by filename, so:
+No secrets, no build command, no environment variables.
 
-- Do not add long `Cache-Control: immutable` headers for `data/*.json` unless you also version the filenames.
-- The app fetches the manifest with `cache: 'no-cache'` to pick up a new corpus on reload.
-- Shards and the title index are cached in IndexedDB. After a data rebuild, bump `version` in `manifest.json` and change the IndexedDB cache key (or ship the existing `__YTB.clearCaches()` migration) if you need clients to discard old shards. For a demo corpus, a hard reload plus a new shard id is enough.
-
-## Cloudflare Pages
-
-- Build command: *none*
-- Output directory: `/`
-- Framework preset: *None*
-
-Same files, same behaviour. Cloudflare applies Brotli, which brings the title index to roughly 3 MB.
-
-## Any static host
-
-Requirements:
-
-- Serve `index.html` at `/`.
-- Serve `data/` with `application/json` and allow range/streaming responses (the title index is read as a stream for progress).
-- Serve `404.html` for unknown paths (optional but included).
-- HTTPS is not technically required but browsers restrict some storage APIs on insecure origins.
-
-Test locally exactly as deployed:
+## Local (the intended daily use)
 
 ```sh
-npm run serve         # http://localhost:9000
-# or
-python3 -m http.server 8080
+npm run local          # binds 127.0.0.1:9000, opens the browser
+npm run serve          # no auto-open
+PORT=9010 npm run local
 ```
+
+- The server binds **127.0.0.1** by default. `--host 0.0.0.0` is available for deliberate LAN use, but
+  that exposes your local proxy to the network; do not do it casually.
+- The library is scoped to the origin. Keep `http://127.0.0.1:9000` stable; a different port means a
+  different IndexedDB.
+- `Start Second Brain.command` is a double-clickable launcher (Node + npm install on first run).
+
+## Metadata proxy
+
+`GET /api/oembed?id=<11-char-id>`:
+
+- validates `^[A-Za-z0-9_-]{11}$`;
+- fetches `https://www.youtube.com/oembed?url=…&format=json`;
+- fetches `https://i.ytimg.com/vi/<id>/mqdefault.jpg` (≤ 900 KB) and returns it as a data URL;
+- caches per id in memory for the server process;
+- returns 400 for invalid ids and 502 when YouTube fails.
+
+It is not a general-purpose proxy and accepts no arbitrary URL.
+
+## Cache headers
+
+The local server sends `Cache-Control: no-store` for HTML/JSON and the API. Pages handles caching for
+static assets itself; the HTML is small and revalidated. There is no versioned dataset to invalidate.
 
 ## Self-hosting the CDN assets
 
-The app pins:
+Pinned dependencies:
 
-- `three@0.180.0` (ES module via importmap, unpkg)
-- `minisearch@7.2.0` (UMD, jsDelivr)
-- `tailwindcss@3.4.17` (Play CDN)
+- `three@0.180.0` via import map (unpkg)
+- `minisearch@7.2.0` UMD (jsDelivr)
+- `tailwindcss@3.4.17` Play CDN
 
-For an air-gapped deployment, download those three files into `vendor/`, rewrite the importmap and script tags, and remove the Tailwind CDN (the layout does not depend on it). The app's own CSS is complete without Tailwind. This adds ~1.1 MB but removes all third-party runtime requests.
+For an air-gapped install, download these into `vendor/`, rewrite the import map and script tags, and
+drop the Tailwind CDN if desired (the app's CSS is complete without it). This adds ~700 KB and removes
+all third-party runtime requests.
 
 ## Release checklist
 
 ```sh
-npm ci
-npm run build:data
-npm run verify:data
 npm run verify -- --shots
+npm run benchmark:build && npm run benchmark:verify   # optional capacity check
 git add -A
-git commit -m "release: 1.0.0"
+git commit -m "release: 2.0.0"
 git push origin main
 ```
 
-Then confirm:
+Confirm:
 
-- Pages workflow is green.
-- Live URL returns 200 and the graph renders.
-- `#/topic/transformer_architecture` opens a drawer.
-- Search finds a title (wait for "Titles ready").
-- Mobile viewport has no horizontal scroll.
+- workflow green and live URL 200;
+- empty state visible, no console errors;
+- add a link locally (metadata works) and import a Takeout file;
+- 390 px has no horizontal overflow;
+- no library data or `benchmark/` file is committed (`git status` clean).
 
 ## Rollback
 
-Pages keeps the previous deployment per commit. Re-run the workflow on the last good commit, or revert the release commit and push. Data and app ship together, so a revert restores a consistent manifest/index/shard set.
+Pages keeps prior deployments. Revert the release commit and push, or re-run the workflow on the last
+good commit. Since there is no server data, rollback only affects the app shell.

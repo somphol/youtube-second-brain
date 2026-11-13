@@ -2,25 +2,34 @@
 
 All notable changes are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [1.0.0] — 2026-11-13
+## [2.0.0] — 2026-11-13
+
+### Changed
+
+- The app is now a **local-first personal library**, not a seeded demonstration. It starts empty and ships no videos.
+- Removed the synthetic 108,000-record corpus, sharded assets and demo mode from the app and repository.
+- The 3D graph is built from the user's own topics, laid out locally.
+- Search builds a MiniSearch index over the local library in an idle slot; substring fallback until ready.
+- The library panel is the primary tool: paste links, import Takeout, group by year/channel/topic, export a backup.
+- Documentation rewritten around privacy, Takeout, capacity and operation.
 
 ### Added
 
-- 108,000-record synthetic corpus across 480 topics and 12 disciplines, generated deterministically by `scripts/build-data.mjs` (seed `20261113`).
-- Sharded data contract: 112 KB manifest with pre-computed 3D coordinates and 958 edges, 480 lazy shards, 176 KB topic index, 12.5 MB deferred title index.
-- Three.js knowledge graph: one instanced mesh for 480 spheres, shader halos, one line buffer for edges, HTML category labels, hand-written orbit/zoom/pinch controls, category focus and camera reset.
-- Drawer with fixed-height virtualization (10–14 DOM rows for shards up to 4,604 videos), sort, saved-only filter and in-shard MiniSearch.
-- Global search over topics, channels and all 108,000 titles with shard resolution for real result cards.
-- localStorage bookmarks and theme, IndexedDB shard and index caching, recent topics.
-- Hash deep links: `#/topic/<id>`, `#/topic/<id>?v=<videoId>`, `#/saved`.
-- Dark/light themes, responsive layout at 390 px, focus trap, reduced-motion support and a list fallback when WebGL is unavailable.
-- 67,990 data integrity checks and 63 headless Chrome checks; automated screenshots and a 1200×630 OG card.
-- Release docs, GitHub Pages workflow, 404, manifest, robots and sitemap.
-- Reusable `youtube-second-brain-studio` skill and its GitHub backup.
+- Local metadata proxy (`/api/oembed`) that stores title, channel and thumbnail as a data URL.
+- Google Takeout `watch-history.json` importer with dedupe and three grouping modes.
+- Empty-state onboarding and a double-click launcher (`Start Second Brain.command`).
+- Optional 100,000-record capacity fixture (`npm run benchmark:build`) and its integrity gate.
+- 59 headless checks, including a 5,000-video virtualization test and Takeout parsing.
 
-### Notes
+### Removed
 
-- The corpus is synthetic by design. Titles, channels and view counts do not describe real videos.
-- Three.js, MiniSearch and Tailwind load from pinned CDNs.
+- `data/` corpus, `build-data.mjs`, `verify-data.mjs`, the 12 MB global index and all shard fetches.
+- The "100k videos shipped" claim and demo toggle.
 
+## [1.0.0] — 2026-11-13
+
+Initial release: a static, sharded 3D knowledge graph over a synthetic 108,000-record corpus, with
+pre-computed coordinates, virtualized lists, bookmarks and a verified GitHub Pages deployment.
+
+[2.0.0]: https://github.com/somphol/youtube-second-brain/releases/tag/v2.0.0
 [1.0.0]: https://github.com/somphol/youtube-second-brain/releases/tag/v1.0.0

@@ -6,3 +6,6 @@ node_modules/
 .vercel/
 .netlify/
 private/
+
+benchmark/
+my-youtube-library-*.json

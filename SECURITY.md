@@ -2,24 +2,35 @@
 
 ## Scope
 
-This is a static site. It has no server, no authentication, no accounts and no database. The attack surface is the browser: third-party CDN scripts, `localStorage`, IndexedDB and the hash router.
+A local-first static app plus a small local Node server. No accounts, no authentication, no cloud
+database. The attack surface is the browser, the local `/api/oembed` endpoint, and the JSON importer.
 
 ## Reporting
 
-Open a private security advisory on GitHub, or email the maintainer listed in `CREDITS.md`. Please do not file a public issue for a vulnerability. Expect an acknowledgement within seven days.
+Open a private security advisory on GitHub, or email the maintainer in `CREDITS.md`. Do not file a public
+issue for a vulnerability.
 
-## Design decisions relevant to security
+## Design decisions
 
-- **No user content is rendered unescaped.** Titles, channels, topic names and search results are escaped before insertion into HTML.
-- **No `eval`, no dynamic script injection, no `innerHTML` from network text.** Shard JSON is parsed as data.
-- **No analytics, cookies or tracking.** The only stored data is the bookmark/theme object in `localStorage` and cached JSON in IndexedDB.
-- **No secrets.** The repository contains no tokens, keys or environment files, and the deployment workflow uses GitHub's OIDC-based Pages action.
-- **Outbound links** use `rel="noopener noreferrer"` and go to YouTube search pages for generated titles.
-- **CDNs are pinned** to exact versions. A compromised CDN remains a supply-chain risk; see `docs/DEPLOYMENT.md` for self-hosting the three vendor files.
+- **The server binds `127.0.0.1`** by default; it is not exposed on the LAN. `--host 0.0.0.0` is opt-in.
+- **`/api/oembed` validates an 11-character id** and fetches only fixed YouTube oEmbed and thumbnail
+  paths. It does not accept a URL parameter, so it cannot be used as an open proxy.
+- **No secrets in the repository.** No Google credentials, API keys, cookies or tokens.
+- **No OAuth and no history scraping.** Takeout files are parsed locally with `File.text()`; nothing is
+  uploaded.
+- **All rendered strings are escaped.** Titles, channels and topic names pass through `escapeHtml`.
+- **Import is bounded**: 120 MB file limit, 100 links per manual batch, JSON parsed as data (never
+  evaluated).
+- **No analytics or third-party storage.** IndexedDB and localStorage are origin-scoped.
+- **CDNs are pinned.** Three 0.180.0, MiniSearch 7.2.0, Tailwind 3.4.17. Self-hosting guidance is in
+  `docs/DEPLOYMENT.md`.
+- **Outbound links** use `rel="noopener noreferrer"`.
 
-## Data disclaimer
+## Data ownership
 
-The corpus is synthetic. Do not treat titles, channels or view counts as facts about real people or videos. If you replace it with real data, you are responsible for the rights, privacy and licensing of that data.
+The app stores personal viewing metadata on the user's machine. It is not encrypted at rest; anyone with
+access to the browser profile can read it. Users should export backups and clear site data on shared
+machines. Do not commit exports; `my-youtube-library-*.json` is gitignored.
 
 ## Supported versions
 

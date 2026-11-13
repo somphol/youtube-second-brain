@@ -1,162 +1,129 @@
 # Architecture
 
-## Shape of the app
+## Shape
 
-One HTML file, one static data directory, no server logic. `index.html` contains:
-
-1. **Design tokens and CSS** — the visual system, all responsive rules.
-2. **Semantic shell** — header, filter bar, stage, drawer, boot screen, toasts.
-3. **Classic scripts** — Tailwind CDN, MiniSearch UMD, a 12 s boot watchdog.
-4. **One ES module** — the entire runtime, organised into eight labelled sections:
+One HTML file, one local server, zero runtime packages. `index.html` contains the design tokens, the
+semantic shell and one inline ES module organised into numbered sections:
 
 ```
-1. constants + formatting     9. persistence
-2. (formatting helpers)      10. data layer
-3. (debug surface)           11. 3D graph
-4. persistence               12. drawer + virtual list
-5. data layer                13. search
-6. 3D graph                  14. chrome / theme / keyboard
-7. drawer + virtual list     15. boot
-8. search                    16. test hooks
+1. constants + formatting     2b. local library import
+2. persistence                3. local data layer
+4. 3D graph                   5. drawer + virtual list
+6. search                     7. chrome / theme / keyboard
+8. boot
 ```
 
-Search for the section banner comments (`/* --- 4. 3D graph --- */`) when editing. There is no bundler, transpiler or minifier. The file is intentionally readable and diff-able.
+There is no bundler, no `app.js`, no data fetch and no build step to deploy. Three.js and MiniSearch load
+from pinned CDNs; Tailwind is present for the shell but the layout does not depend on it.
 
-## Boot sequence
-
-```
-document parse
-  → CSS paints boot screen (server-rendered, no JS needed)
-  → importmap resolves three from unpkg
-  → module executes init()
-      loadStore()                    localStorage: theme, bookmarks, recents
-      setTheme()                     apply before first paint of the shell
-      fetch data/manifest.json       ~112 KB
-      fetch data/search_index.json   ~176 KB, MiniSearch.loadJSON
-      paint header counters, chips, legend, onboarding
-      new KnowledgeGraph()           WebGL scene, 480 instances, edges, halos
-      state.ready = true
-      hide boot screen
-      routeFromHash()                #/topic/... or #/saved
-      requestIdleCallback(loadVideoIndex)
-```
-
-If `fetch` fails (opened with `file://`), the boot card explains the failure instead of spinning. If Three.js fails to load, a 12 s watchdog writes a CDN-specific message into the same card.
-
-## Data flow on a topic click
+## Boot
 
 ```
-node click / search result / deep link
-  → openDrawer('topic', { topicId, focusId? })
-  → getShard(topic)
-       memory cache?      → instant
-       IndexedDB?         → parse, populate memory
-       else fetch(data/shards/<id>.json)
-           → JSON.parse, validate videos[], cache in memory + IndexedDB
-  → ensureShardIndex(shard)   (only when the user types)
-  → filteredTopicVideos()     (query · savedOnly · sort)
-  → virtual list setItems()
+loadStore()                       theme, bookmarks, recents from localStorage
+setTheme()
+loadLibrary()                     IndexedDB → { videos }
+buildPersonalDataset()            topics, coords, edges, in-memory payloads
+activateDataset()                 graph (if any topics), chrome, search index
+state.ready = true
+routeFromHash()
 ```
 
-The drawer header shows which path was taken (`fetched`, `indexeddb`, `in memory`), the elapsed milliseconds, and the shard size. This is diagnostic UI, not decoration: it makes lazy loading observable.
+No network request is made at boot. With an empty library, the stage shows the empty-state card and the
+library button; the graph is not created until the first record exists.
 
-## 3D graph
+## Adding a link
 
-- **Coordinates** are baked into the manifest by `scripts/build-data.mjs`. Each of the 12 categories gets a Fibonacci-sphere centre at radius 7.4; its 40 topics scatter inside a 0.55–2.6 radius cloud. Nothing moves on open except the camera.
-- **Nodes** are a single `THREE.InstancedMesh` (480 instances, one draw call). Sphere radius is `0.12 + 0.2 * ln(count / 60)`, computed at build time. Per-instance colour comes from the category hue.
-- **Halos** are one `THREE.Points` cloud with a custom shader (`aSize`, `aColor`, `aAlpha`); additive blending, depth write off.
-- **Edges** are one `LineSegments` buffer built from 958 manifest links (3 nearest neighbours per topic plus 12 cross-category bridges).
-- **Pick/hover** uses `Raycaster.intersectObject(instancedMesh)` and `instanceId`. Hovering draws a camera-facing torus and an HTML tooltip; clicking opens the drawer.
-- **Labels** are 12 HTML pills projected from category centres every frame. They stay crisp, are clickable, and cost 12 transforms per frame.
-- **Controls** are hand-written spherical orbit: drag rotates, wheel/pinch zooms, double-click resets, buttons expose zoom/reset. Auto-rotate resumes after 9 s of no interaction and is disabled under `prefers-reduced-motion`.
-- **Filtering** dims non-active instances (colour × dark multiplier, 0.82 scale, halo alpha 0.02), fades edges, and mutes labels. Selecting a category also aims the camera at that cluster's centre.
+```
+user pastes URLs → parseYouTubeId()
+  → GET /api/oembed?id=<id>          local server only
+      → youtube.com/oembed           title, author_name
+      → i.ytimg.com/.../mqdefault    thumbnail → data URL
+  → normaliseRecord()
+  → mergeLibraryRecords()            dedupe by id
+  → saveLibrary()                    IndexedDB, awaited
+  → buildPersonalDataset()
+  → activateDataset()                rebuild graph, reschedule search index
+```
 
-No post-processing, no external HDRIs, no textures. The glow texture is procedural in the shader.
+If `/api/oembed` is missing (static hosting) or fails, the record is still saved with a placeholder title
+and the watch URL. The UI reports how many were added without metadata.
+
+## Importing history
+
+`importLibraryFile()` reads the selected file with `File.text()`, limits it to 120 MB, detects a Takeout
+array vs. an exported backup, and calls `takeoutToRecords()` with the chosen grouping. The file never
+leaves the tab. Merge, save, rebuild and repaint follow the same path as manual adds.
+
+## 3D graph (local)
+
+- **Nodes**: one `InstancedMesh` sphere per topic. Radius `0.34 + 0.24 * ln(count + 1)`, colour from the
+  topic hue. No per-video nodes.
+- **Layout**: ring for ≤ 6 topics; Fibonacci sphere for more. Computed in `buildPersonalDataset()`.
+- **Edges**: two nearest neighbours per topic, one `LineSegments` buffer.
+- **Halos**: one `Points` cloud with a custom shader (`aSize`, `aColor`, `aAlpha`).
+- **Labels**: HTML pills above each topic (up to 24; top 12 by count above that), projected per frame.
+  Category labels are not used in the personal graph.
+- **Interaction**: hand-written orbit/zoom/pinch; camera-facing torus rings for hover/selection; raycast
+  on `instanceId`; clicks open the drawer.
+- **Empty**: no graph object at all; CSS stage + empty card.
+
+The scene cost grows with topics, not videos. 480 topics is the tested upper bound (100k benchmark).
 
 ## Drawer and virtualization
 
-`state.drawer` is the single source of truth:
-
-```js
-{ mode, topic, shard, items, query, sort, savedOnly,
-  loading, error, source, bytes, ms, focusId }
-```
-
-The list uses a three-element structure:
-
-```html
-<div id="drawerScroll">          <!-- the only scroller -->
-  <div class="vlist">
-    <div class="vlist-spacer"></div>          <!-- height = items × rowHeight -->
-    <div class="vlist-window"></div>          <!-- translateY(start × rowHeight) -->
-  </div>
-</div>
-```
-
-On scroll (throttled to one `requestAnimationFrame`), the visible window is recomputed:
+The only scroller is `#drawerScroll`, containing a spacer and a translated window:
 
 ```
 start = max(0, floor(scrollTop / rowH) - 2)
 end   = min(total, ceil((scrollTop + viewport) / rowH) + 2)
 ```
 
-Only those rows are serialised into `innerHTML`. With a 92 px row and a ~700 px viewport that is 10–12 rows, plus 4 overscan. A 4,604-row shard scrolls to `scrollHeight ≈ 423,568 px` while the DOM stays at 10–14 `.vrow` nodes. `--row-h` is read from computed style, so the mobile breakpoint (88 px) stays correct.
+Rows are re-serialised only when the integer window changes. `--row-h` is 92 px desktop / 88 px mobile.
+5,000 rows and 3,765 rows were both verified at ≤ 20 DOM nodes after deep scrolling. A 100k single-topic
+library would have a scroll height of ~9.2 million pixels but still ~11 rows.
 
-Rebuild triggers: query, sort, saved-only, bookmark toggle (saved mode), resize. Scroll position resets on filter changes and centres on `focusId` when a deep link targets a specific video.
+Drawer modes: `topic` (in-memory payload), `saved` (bookmark records), `topics` (all topics). Each has
+its own filter/sort path and empty state. Per-topic search uses a lazy MiniSearch index over that topic.
 
-## Search design
+## Search
 
-Two MiniSearch instances with different lifetimes:
+- **Topic search**: substring over topic names (`searchTopics`).
+- **Video search**: MiniSearch over `title`, `channel`, `topicName` when ready; substring over the same
+  fields before that. The index is built in `requestIdleCallback` for libraries above 2,000 records;
+  smaller libraries build it immediately.
+- Results cap at 10; topic results cap at 5. Clicking a result opens the topic, optionally scrolling to
+  the video id.
+- `searchStatus` (`idle | pending | ready | error`) drives the panel copy; there is no network index.
 
-| Index | Built | Fields | Stored | Size |
-| --- | --- | --- | --- | --- |
-| `search_index.json` | build time | `name`, `categoryName` | type, name, category, count, slug | 176 KB |
-| `video_index.json` | build time | `t` (title) | `k` (topic index), `n` (position in sorted shard) | 12.5 MB |
-| shard index | lazy per shard | `title`, `channel` | `id` | memory only |
+## Persistence
 
-The global title index stores only two integers per document. Titles live in shards, so resolving a result means fetching the shards for the top matches (max 4 per query) and indexing into `shard.videos[n]`. This keeps the boot payload small and avoids duplicating 108k titles in the index.
+- **IndexedDB** is the source of truth for records. `saveLibrary()` awaits the write.
+- **localStorage** holds preferences and bookmark snapshots. Bookmarks include enough fields to render
+  without the library.
+- **Export/import** is the migration path between browsers and Macs.
+- The origin is part of the storage key: `127.0.0.1:9000` and `localhost:9000` do not share a library.
 
-If MiniSearch is unavailable, the topic index degrades to `fallbackSearch()` (substring over 480 topics) and shard search degrades to title/channel substring matching.
+## Local server
 
-## State and persistence
+`scripts/serve.mjs`:
 
-`localStorage['yt-second-brain:v1']`:
-
-```json
-{
-  "version": 1,
-  "theme": "dark",
-  "bookmarks": {
-    "<videoId>": { "id": "...", "title": "...", "channel": "...", "topicId": "...", "topicName": "...", "savedAt": 0 }
-  },
-  "recent": ["transformer_architecture"],
-  "savedAt": "2026-11-13T09:00:00.000Z"
-}
-```
-
-Bookmarks store enough to render and reopen the topic without a network request. Writes are synchronous (the payload is tiny) so a fast reload never loses a star.
-
-`IndexedDB['yt-second-brain']` has two stores: `shards` (keyed by topic id, raw JSON text) and `assets` (the streamed title index). Failures degrade silently to network fetches. `__YTB.clearCaches()` clears both stores and localStorage for testing.
-
-## Routing
-
-Hash-based, `history.replaceState` only:
-
-- `#/topic/<id>` — open a topic
-- `#/topic/<id>?v=<videoId>` — open and centre a video row
-- `#/saved` — open the saved drawer
-
-Closing the drawer clears the hash. The `hashchange` listener routes only after boot, so back/forward and pasted links work. Unknown ids are ignored rather than crashing.
+- binds `127.0.0.1` by default (never LAN);
+- serves static files with correct MIME and no-store caching;
+- exposes `/api/oembed?id=<11-char-id>` only; validates the id, fetches a fixed YouTube oEmbed URL and
+  the fixed `i.ytimg.com` thumbnail path, caps the image at 900 KB, caches results in memory, and
+  returns JSON. It is not a general proxy.
+- `--host 0.0.0.0` exists for deliberate LAN use; `--open` launches the browser.
 
 ## Failure modes
 
 | Failure | Behaviour |
 | --- | --- |
-| `file://` | Boot card: serve over HTTP. |
-| CDN Three.js blocked | Watchdog message; no graph. |
-| CDN MiniSearch blocked | Substring search for topics and shards. |
-| WebGL unavailable | Cooked `try/catch`, browse-list fallback. |
-| Shard 404 | Inline error card with retry; other topics unaffected. |
-| IndexedDB blocked | Every shard fetched from network; app still works. |
-| localStorage full | Toast warning; in-memory bookmarks still work for the session. |
-| Corrupt stored JSON | Ignored; clean defaults. |
+| No library | Empty state with Add / Import actions. |
+| `file://` | Boot explains that a server is required. |
+| oEmbed fails / static host | Records saved with placeholder titles; status message reports it. |
+| Thumbnail fails | Procedural gradient poster. |
+| IndexedDB blocked/full | Import throws with a status message; existing data unchanged. |
+| localStorage full | Toast; in-memory bookmarks still work for the session. |
+| MiniSearch CDN blocked | Substring search; no index. |
+| WebGL unavailable | Graph fallback panel; library/drawer/search still work. |
+| Malformed JSON import | Status error; nothing written. |

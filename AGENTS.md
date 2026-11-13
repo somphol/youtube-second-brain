@@ -1,78 +1,86 @@
-# Agent notes — YouTube Second Brain 100k
+# Agent notes — Second Brain
 
 ## What it is
 
-A static single-page app that maps 108,000 **synthetic** YouTube-style videos across 480 topics into
-a pre-computed 3D graph. Topic clicks lazy-load one JSON shard; a virtualized drawer renders 10–14
-rows at a time; bookmarks live in localStorage. It is not a YouTube client or scraper, and no backend
-exists. Everything the browser needs is `index.html` + `data/`.
+A local-first, single-page app that maps **your own** YouTube library in 3D. Videos are added by URL or
+imported from Google Takeout; records and thumbnails live in IndexedDB on the Mac, and nothing is
+uploaded. The app starts empty and ships **no corpus**. It is not a downloader, scraper or OAuth client,
+and watch history cannot be fetched programmatically.
+
+The design must stay smooth at 100,000 videos: windowed lists, in-memory search index, topics (not
+videos) as graph nodes.
 
 ## Commands
 
 ```sh
-python3 -m http.server 8080   # or: npm run serve  (port 9000, PORT=… to change)
-npm install                   # dev only: minisearch 7.2.0, puppeteer-core 24
-npm run build:data            # rewrite data/ deterministically (seed 20261113)
-npm run verify:data           # 67,990 corpus checks — run before every data change
-npm run verify                # 63 headless Chrome checks — release gate
-npm run verify -- --shots     # also regenerate screenshots/ (includes 1200×630 OG card)
-CHROME_PATH=/path/to/chrome npm run verify   # non-macOS Chrome location
+npm run local                 # 127.0.0.1:9000 + open browser (double-click .command also works)
+npm run serve                 # same, no auto-open
+npm run verify                # 59 headless Chrome checks — release gate
+npm run screenshots           # regenerate screenshots/ (includes the OG card)
+npm run benchmark:build       # optional 100k fixture → benchmark/library-100k.json (gitignored)
+npm run benchmark:verify      # 11 fixture checks
+CHROME_PATH=/path/to/chrome npm run verify
 ```
 
-Deploy: push `main`; `.github/workflows/pages.yml` publishes the repo root. Pages source must be
-**GitHub Actions** (set once in Settings). No build command, no secrets.
+Node 20+; `npm install` installs only `puppeteer-core` for the gate. Deploy: push `main`; Pages workflow
+publishes the repo root. First time: **Settings → Pages → Source: GitHub Actions**.
 
 ## Architecture
 
-- `index.html` — the whole app: CSS tokens → shell markup → Tailwind/MiniSearch CDN scripts → one
-  inline ES module. Find edits by the section banners (`/* --- 4. 3D graph --- */`, etc.). There is no
-  `app.js`; do not reintroduce a build step.
-- `data/manifest.json` — 480 topics with `pos:[x,y,z]`, `radius`, `count`, shard path; 12 categories;
-  958 edges. Boot asset.
-- `data/search_index.json` — prebuilt MiniSearch over topics + channels. Boot asset.
-- `data/video_index.json` — prebuilt MiniSearch over all 108k titles; stores only `(k,n)` positions.
-  Loaded after first paint and cached in IndexedDB.
-- `data/shards/<topic>.json` — videos for one topic, sorted newest first. Fetched on demand.
-- `scripts/build-data.mjs` + `scripts/taxonomy.mjs` — the only source of the corpus.
-- `scripts/verify*.mjs` — the truth. If behaviour changes, change the gate in the same commit.
+- `index.html` — the whole app: CSS tokens → shell → one inline ES module. Navigate by the numbered
+  section banners (`/* --- 2b. local library --- */`, `/* --- 4. 3D graph --- */`, …). There is no
+  `app.js`, no bundler and no runtime npm dependency.
+- `scripts/serve.mjs` — static server bound to `127.0.0.1` **plus** `/api/oembed?id=<11-char-id>`, which
+  fetches public oEmbed metadata and the `mqdefault` thumbnail server-side, returning the image as a
+  data URL. This endpoint exists only locally.
+- **Library pipeline**: import → `normaliseRecord` → `mergeLibraryRecords` (dedupe by video id) →
+  `saveLibrary` (IndexedDB `library`) → `buildPersonalDataset` (topics, coordinates, edges) →
+  `activateDataset` (graph rebuild, search index scheduled).
+- **Persistence**: IndexedDB `yt-second-brain` → `library` (one record keyed `collection`), plus legacy
+  `shards`/`assets` stores. `localStorage['yt-second-brain:v1']` holds theme, bookmarks and recents.
+- **Graph**: `InstancedMesh` for topic spheres, one `Points` shader for halos, one `LineSegments` for
+  links, HTML labels projected per frame. Coordinates are generated from topic counts in the browser
+  (ring for ≤ 6 topics, Fibonacci sphere above).
+- **Drawer**: fixed-height virtual list (`spacer` + translated `window`); `topic.__shard` is an in-memory
+  payload with `{videos}`. No shard is fetched over the network.
+- **Search**: `searchTopics` filters topic names; `schedulePersonalIndex` builds a MiniSearch index over
+  the library in an idle slot (deferred above 2,000 records) and `runSearch` uses it, falling back to
+  substring matching until ready.
+- **Local server proxy** is the only outbound metadata path. Takeout import is pure client-side parsing.
 
 ## Decisions and constraints
 
-- **The corpus is synthetic and must stay labelled.** `manifest.synthetic` and each shard's
-  `synthetic:true` are part of the contract. Links intentionally go to YouTube **search**, not to
-  unverified video ids. Replacing the corpus with real data requires updating the disclosure and
-  `youtubeSearchUrl()`.
-- **Shard order is load-bearing.** `video_index.json` stores `(k,n)` where `n` is the position in the
-  sorted shard. Re-sort a shard without rebuilding the title index and search opens the wrong video.
-- **Boot must not fetch the title index or any shard.** `verify` asserts both. Keep the
-  `requestIdleCallback` deferral and the 112 KB / 176 KB boot budget.
-- **Virtualization is fixed-height.** `--row-h` is read from computed style; rows must not rely on
-  margins that escape the box. Keep rendered `.vrow` count ≤ 20.
-- **Coordinates are baked at build time.** Do not add a force simulation. If you change layout,
-  regenerate and rerun both gates.
-- **Persisted schema is `yt-second-brain:v1`** with `version:1`. Bookmarks store enough data to render
-  without a shard fetch. Keep old keys readable.
-- **Hash routing uses `replaceState`.** `#/topic/<id>`, `#/topic/<id>?v=<videoId>`, `#/saved`.
-- **CDNs are pinned.** Three 0.180.0, MiniSearch 7.2.0, Tailwind 3.4.17. Tailwind is present for the
-  brief but is not the layout source; removing its two tags does not change layout.
-- **No tracking, no external fonts, no stock images.** Posters, icons and the OG card are procedural.
+- **No seeded videos.** Do not add a demo corpus, sample data or a "load 100k" default. The empty state
+  is the product. The benchmark fixture is gitignored and opt-in.
+- **Never add Google auth, cookie import or history scraping.** Takeout JSON is the only history path.
+- **Topic ids are derived from topic names** (`lib_<slug>`), and are used in hashes and bookmarks.
+  Renaming a topic changes its id; that is acceptable but should be documented in the UI.
+- **The library is origin-bound.** `127.0.0.1:9000` ≠ `localhost:9000` ≠ another port. Keep the default.
+- **`/api/oembed` must stay narrow**: 11-char id validation, fixed YouTube hosts, no arbitrary URL proxy.
+- **Meta values for imported links are unknown.** Do not invent duration/views; `0` renders as absent.
+- **Virtualization math depends on `--row-h`.** Keep rendered `.vrow` count ≤ 20 and test deep scroll.
+- **All data-derived strings are escaped** before HTML interpolation.
+- **Do not reintroduce `data/` fetches.** The gate asserts no `/data/` request on boot.
+- **The 100k benchmark is synthetic and labelled.** Never commit `benchmark/` or present it as real
+  history.
 
 ## Known issues
 
-- The 12.5 MB title index is heavy on low-memory phones; it is deferred and cached, but a cold load
-  costs ~3 MB gzipped. Shrinking it means dropping global title search or sharding the index further.
-- FPS assertions are environment-sensitive under software rendering (threshold is 25, not 60).
-- Title-index position resolution is sampled in `verify:data`, not exhaustive.
-- The demo GitHub Pages deployment has no custom 404 for client-side topic URLs; hash routing means
-  no server round-trip, so this is intentional.
-- `screenshots/og-cover.png` is a live capture, not a composed asset; regenerate it with `--shots`.
+- oEmbed requires the local server; static hosting saves URL-only records.
+- Imported links have no duration/views; Takeout has no duration/views either.
+- 100k import uses ~130–170 MB of tab memory with the search index warm.
+- Bulk imports skip thumbnails to avoid hundreds of MB of image data.
+- IndexedDB is per-origin; changing port/host makes the library look empty.
+- Clearing site data deletes the library; users must export a JSON backup.
+- The gate's FPS check is lenient under headless software rendering.
 
 ## Continuity
 
 - Local source of truth: `/Users/somphol/Projects/youtube-second-brain`
 - Repository: https://github.com/somphol/youtube-second-brain
-- Live: https://somphol.github.io/youtube-second-brain/
-- Build provenance, elapsed time, tokens and model: `state.json` and `STATE.md`.
-- Reusable skill: `~/.config/opencode/skills/youtube-second-brain-studio` (backup repo linked there).
+- Live (empty library, per visitor): https://somphol.github.io/youtube-second-brain/
+- Provenance: `state.json`, `STATE.md`
+- Skill: `~/.config/opencode/skills/youtube-second-brain-studio`
+- Kitchen-table demo URLs live only in `screenshots/`; they are not seeded data.
 
-Do not record secrets, tokens or credentials in this repository.
+Never record secrets, tokens, cookies, credentials or personal watch history in this repository.

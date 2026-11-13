@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>YouTube Second Brain 100k — a 3D map of 108,000 videos</title>
-<meta name="description" content="Explore 108,000 YouTube-style videos across 480 topics on a pre-computed 3D knowledge graph. Sharded data, virtualized lists, instant search, bookmarks — all static.">
+<title>Second Brain — your YouTube library in 3D</title>
+<meta name="description" content="A private, local-first 3D map of your own YouTube library. Import links or Google Takeout history; everything stays on your Mac. Built to stay smooth at 100,000 videos.">
 <meta name="theme-color" content="#06070b">
 <meta name="color-scheme" content="dark light">
 <link rel="canonical" href="https://somphol.github.io/youtube-second-brain/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="YouTube Second Brain 100k">
-<meta property="og:description" content="A 3D knowledge network over 108,000 videos. Sharded on demand. Searchable offline-first.">
+<meta property="og:title" content="Second Brain — your YouTube library in 3D">
+<meta property="og:description" content="A private 3D map of your own YouTube library. Local-first, no account, built for 100k videos.">
 <meta property="og:url" content="https://somphol.github.io/youtube-second-brain/">
 <meta property="og:image" content="https://somphol.github.io/youtube-second-brain/screenshots/og-cover.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="YouTube Second Brain 100k">
-<meta name="twitter:description" content="108,000 videos, 480 topics, one static page.">
+<meta name="twitter:title" content="Second Brain — your YouTube library in 3D">
+<meta name="twitter:description" content="Your YouTube library, mapped locally.">
 <meta name="twitter:image" content="https://somphol.github.io/youtube-second-brain/screenshots/og-cover.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090a10'/%3E%3Ccircle cx='17' cy='20' r='5' fill='%23ff3d63'/%3E%3Ccircle cx='46' cy='17' r='3.5' fill='%238b5cff'/%3E%3Ccircle cx='30' cy='45' r='7' fill='%2338d39f'/%3E%3Ccircle cx='50' cy='41' r='4' fill='%23ffb454'/%3E%3Cpath d='M21 22l10 17M44 20l-10 20M36 42h10' stroke='%23ffffff' stroke-opacity='.4' stroke-width='1.5'/%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.webmanifest">
@@ -70,7 +70,7 @@ html[data-theme="dark"] {
   --shadow: 0 24px 70px -20px rgba(0, 0, 0, .8);
   --glow: rgba(139, 92, 255, .16);
   --grid: rgba(255, 255, 255, .035);
-  --scrim: rgba(4, 5, 9, .62);
+  --scrim: rgba(4, 5, 9, .42);
   --grad-a: #ff3d63; --grad-b: #8b5cff; --grad-c: #38d39f;
   --stage-a: #0a0714;
   --stage-b: #06070b;
@@ -95,7 +95,7 @@ html[data-theme="light"] {
   --shadow: 0 24px 60px -24px rgba(25, 30, 60, .22);
   --glow: rgba(99, 56, 240, .12);
   --grid: rgba(12, 16, 40, .045);
-  --scrim: rgba(18, 20, 35, .28);
+  --scrim: rgba(18, 20, 35, .18);
   --grad-a: #d61b45; --grad-b: #4c2bd6; --grad-c: #0a8f63;
   --stage-a: #eef0fa;
   --stage-b: #f5f6fb;
@@ -363,6 +363,20 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
 .cat-label:hover { color: var(--text); border-color: var(--line-strong); background: var(--panel-solid); }
 .cat-label .dot { width: 5px; height: 5px; border-radius: 50%; background: hsl(var(--h, 260) 72% 62%); box-shadow: 0 0 8px hsl(var(--h, 260) 80% 60% / .8); }
 .cat-label.is-muted { opacity: .18; }
+.node-label {
+  position: absolute; left: 0; top: 0; will-change: transform, opacity;
+  display: flex; align-items: center; gap: 5px; padding: 3px 7px;
+  border-radius: 99px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  font-size: 10px; font-weight: 550; color: var(--text); white-space: nowrap;
+  cursor: pointer; pointer-events: auto; transform: translate3d(-999px,-999px,0);
+  transition: border-color .16s, background .16s, opacity .2s;
+}
+.node-label::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: hsl(var(--h, 200) 72% 60%); box-shadow: 0 0 7px hsl(var(--h, 200) 80% 60% / .75); }
+.node-label b { font-family: var(--font-mono); font-size: 8.5px; font-weight: 400; color: var(--faint); }
+.node-label:hover { border-color: var(--line-strong); background: var(--panel-solid); }
+.node-label.is-muted { opacity: .2; }
 
 .hud { position: absolute; inset: 0; z-index: 4; pointer-events: none; padding: 20px 22px; }
 .hud > * { pointer-events: auto; }
@@ -564,7 +578,11 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
   background-image: radial-gradient(rgba(255,255,255,.22) .5px, transparent .5px);
   background-size: 5px 5px; opacity: .25;
 }
-.poster svg { position: relative; z-index: 1; color: rgba(255,255,255,.9); filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+.poster svg { position: relative; z-index: 1; color: rgba(255,255,255,.9); filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+.poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.poster.has-thumb { background: #0a0b10; }
+.poster.has-thumb::after { background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.42)); background-image: none; opacity: 1; }
+.poster.has-thumb svg { color: #fff; opacity: .95; }
 .poster .dur {
   position: absolute; right: 3px; bottom: 3px; z-index: 2;
   font-family: var(--font-mono); font-size: 8px; padding: 1px 3px; border-radius: 3px;
@@ -679,18 +697,36 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px) scale(.97); } }
 @keyframes toast-out { to { opacity: 0; transform: translateY(8px) scale(.97); } }
 
-.onboard {
-  position: absolute; right: 22px; top: 20px; width: 246px; padding: 14px;
-  border-radius: var(--radius); border: 1px solid var(--line);
-  background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  box-shadow: var(--shadow); z-index: 5;
+.empty-stage {
+  position: absolute; inset: 0; z-index: 6; display: grid; place-items: center;
+  padding: 24px; pointer-events: none;
 }
-.onboard h4 { margin: 0 0 5px; font-size: 12px; font-weight: 650; }
-.onboard p { margin: 0 0 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
-.onboard ol { margin: 0 0 10px; padding-left: 16px; font-size: 11px; color: var(--muted); display: grid; gap: 3px; }
-.onboard .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.onboard .dismiss { font-size: 10.5px; color: var(--faint); text-decoration: underline; text-underline-offset: 2px; }
-.onboard .start { font-size: 10.5px; color: var(--accent-2); font-weight: 600; }
+.empty-stage[hidden] { display: none; }
+.empty-card {
+  pointer-events: auto; width: min(440px, 100%); text-align: center;
+  padding: 28px 26px; border-radius: 20px;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--panel-solid) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(130%); -webkit-backdrop-filter: blur(18px) saturate(130%);
+  box-shadow: var(--shadow);
+}
+.empty-orb {
+  width: 58px; height: 58px; margin: 0 auto 16px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ff3d63, transparent 46%), radial-gradient(circle at 68% 66%, #8b5cff, transparent 50%), #12141f;
+  box-shadow: 0 0 50px -6px var(--accent-2), inset 0 0 0 1px rgba(255,255,255,.12);
+}
+.empty-card .eyebrow { justify-content: center; margin-bottom: 8px; }
+.empty-card h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: -.035em; }
+.empty-card p { margin: 0 auto 16px; font-size: 12.5px; line-height: 1.6; color: var(--muted); max-width: 340px; }
+.empty-card code { font-family: var(--font-mono); font-size: 10.5px; color: var(--text); }
+.empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.empty-actions .lib-btn { height: 34px; }
+.empty-note { margin-top: 14px; font-family: var(--font-mono); font-size: 9px; letter-spacing: .03em; color: var(--faint); line-height: 1.5; }
+@media (max-width: 560px) {
+  .empty-card { padding: 22px 18px; }
+  .empty-card h2 { font-size: 19px; }
+  .hud-title { display: none; }
+}
 
 .graph-fallback {
   position: absolute; inset: 0; z-index: 3; display: none;
@@ -702,8 +738,141 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
 .graph-fallback p { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
 
 /* ==========================================================================
+   7b. LOCAL LIBRARY
+   ========================================================================== */
+.library-scrim {
+  position: fixed; inset: 0; z-index: 74;
+  background: var(--scrim); opacity: 0; pointer-events: none;
+  transition: opacity .28s var(--ease);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.library-scrim.is-open { opacity: 1; pointer-events: auto; }
+.library-sheet {
+  position: fixed; z-index: 75; left: 50%; top: 50%;
+  width: min(600px, calc(100vw - 32px)); max-height: min(86vh, 760px);
+  display: flex; flex-direction: column;
+  background: var(--panel-solid); border: 1px solid var(--line-strong);
+  border-radius: 18px; box-shadow: var(--shadow);
+  transform: translate(-50%, -50%) scale(.97); opacity: 0; visibility: hidden;
+  transition: transform .28s var(--ease), opacity .22s var(--ease), visibility 0s linear .28s;
+}
+.library-sheet.is-open {
+  transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible;
+  transition: transform .28s var(--ease), opacity .22s var(--ease), visibility 0s;
+}
+.library-head {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--line);
+}
+.library-head h2 { margin: 0; font-size: 19px; letter-spacing: -.03em; }
+.library-head p { margin: 4px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.library-body { padding: 16px 20px 20px; overflow-y: auto; min-height: 0; }
+.library-tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  border: 1px solid var(--line); border-radius: 10px; margin-bottom: 14px;
+}
+.library-tabs button {
+  height: 34px; border-radius: 7px; font-size: 12px; font-weight: 550; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.library-tabs button.is-active {
+  color: var(--text); background: var(--panel-solid);
+  box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 4px 14px -8px rgba(0,0,0,.6);
+}
+.library-tabs button:disabled { opacity: .4; cursor: default; }
+.privacy {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 9px 11px; border-radius: 9px; margin-bottom: 14px;
+  border: 1px solid color-mix(in srgb, var(--good) 26%, transparent);
+  background: color-mix(in srgb, var(--good) 7%, transparent);
+  font-size: 10.8px; line-height: 1.5; color: var(--muted);
+}
+.privacy strong { color: var(--good); font-weight: 600; }
+.privacy svg { flex: 0 0 auto; color: var(--good); margin-top: 1px; }
+.lib-label {
+  display: block; font-family: var(--font-mono); font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--faint); margin-bottom: 6px;
+}
+.lib-textarea {
+  width: 100%; min-height: 86px; resize: vertical;
+  background: color-mix(in srgb, var(--bg) 40%, transparent);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  font-size: 12px; line-height: 1.55; outline: 0; color: var(--text);
+}
+.lib-textarea:focus { border-color: color-mix(in srgb, var(--accent-2) 52%, transparent); box-shadow: 0 0 0 3px var(--glow); }
+.lib-textarea::placeholder { color: var(--faint); }
+.lib-add-row { display: flex; gap: 7px; margin-top: 8px; }
+.lib-input {
+  flex: 1; min-width: 0; height: 34px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 40%, transparent);
+  font-size: 11.5px; outline: 0;
+}
+.lib-input:focus { border-color: color-mix(in srgb, var(--accent-2) 52%, transparent); }
+.lib-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line);
+  font-size: 11.5px; font-weight: 550; color: var(--muted); white-space: nowrap;
+}
+.lib-btn:hover { color: var(--text); border-color: var(--line-strong); background: var(--panel-hover); }
+.lib-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.lib-btn.primary:hover { filter: brightness(1.07); background: var(--accent); }
+.lib-btn:disabled { opacity: .5; cursor: default; }
+.lib-status { margin-top: 9px; font-size: 11px; color: var(--muted); min-height: 16px; line-height: 1.45; }
+.lib-status.is-error { color: var(--accent); }
+.lib-status.is-ok { color: var(--good); }
+.lib-tools { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 2px; }
+.lib-tools .lib-btn { height: 30px; font-size: 10.5px; padding: 0 9px; }
+.lib-tools .danger:hover { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.takeout-hint {
+  margin-top: 10px; padding: 10px 11px; border: 1px dashed var(--line-strong);
+  border-radius: 9px; font-size: 10.8px; line-height: 1.55; color: var(--muted);
+}
+.takeout-hint strong { color: var(--text); font-weight: 600; }
+.takeout-hint code { font-family: var(--font-mono); font-size: 9.5px; color: var(--text); }
+.lib-list-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 16px 0 6px; padding-top: 13px; border-top: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+}
+.lib-list { display: grid; gap: 1px; }
+.lib-item { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+.lib-item:last-child { border-bottom: 0; }
+.lib-thumb {
+  width: 40px; height: 40px; border-radius: 7px; flex: 0 0 auto; overflow: hidden;
+  background: linear-gradient(145deg, hsl(var(--h, 200) 45% 26%), hsl(calc(var(--h, 200) + 40) 50% 14%));
+  position: relative;
+}
+.lib-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lib-thumb .ph { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.8); }
+.lib-main { min-width: 0; flex: 1; }
+.lib-title { font-size: 11.8px; font-weight: 550; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lib-meta { font-size: 10px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-actions { display: flex; gap: 1px; }
+.lib-actions button, .lib-actions a { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; color: var(--faint); }
+.lib-actions button:hover, .lib-actions a:hover { color: var(--text); background: var(--panel-hover); }
+.lib-actions .del:hover { color: var(--accent); }
+.lib-empty { padding: 18px 8px; text-align: center; color: var(--muted); font-size: 11.5px; line-height: 1.55; }
+@media (max-width: 560px) {
+  .library-sheet {
+    left: 0; top: 0; width: 100vw; height: 100dvh; max-height: none;
+    border-radius: 0; border: 0; transform: translateY(3%) scale(1);
+  }
+  .library-sheet.is-open { transform: none; }
+  .library-body { padding: 14px 16px 24px; }
+  .library-head { padding: 16px; }
+  .lib-add-row { flex-wrap: wrap; }
+  .lib-input { flex: 1 1 100%; }
+  .lib-add-row .lib-btn { flex: 1; }
+}
+
+/* ==========================================================================
    8. RESPONSIVE
    ========================================================================== */
+@media (min-width: 861px) {
+  .stage { transition: margin-right .42s var(--ease); }
+  body.drawer-open .stage { margin-right: min(var(--drawer-w), 100vw); }
+}
 @media (max-width: 1080px) {
   .brand-sub { display: none; }
   .hint-pill { display: none; }
@@ -722,7 +891,6 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
   .hud-title p { max-width: 210px; font-size: 11px; }
   .hud-stats { gap: 12px; margin-top: 11px; padding-top: 10px; }
   .hud-stat .v { font-size: 12px; }
-  .onboard { display: none; }
   .orbit-tools { right: 14px; bottom: 14px; }
   .drawer-head { padding: 16px 16px 12px; }
   .drawer-title { font-size: 19px; }
@@ -773,8 +941,8 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
 <div class="boot" id="boot" aria-live="polite">
   <div class="boot-card">
     <div class="boot-mark" aria-hidden="true"></div>
-    <h1>YouTube Second Brain</h1>
-    <p>Mapping 108,000 videos across 480 topics</p>
+    <h1>Second Brain</h1>
+    <p>Reading your local library — nothing leaves this Mac</p>
     <div class="boot-bar"><span id="bootBar"></span></div>
     <div class="boot-status"><span id="bootStep">Fetching manifest</span><span id="bootPct">0%</span></div>
     <div class="boot-error" id="bootError" hidden></div>
@@ -786,7 +954,7 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
     <div class="brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <h1 class="brand-title">Second Brain <span class="brand-badge">100K</span></h1>
+        <h1 class="brand-title">Second Brain <span class="brand-badge" id="brandBadge">LOCAL</span></h1>
         <div class="brand-sub">
           <span id="brandVideos">—</span><span class="dot"></span>
           <span id="brandTopics">—</span><span class="dot"></span>
@@ -796,10 +964,10 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
     </div>
 
     <div class="search-wrap" id="searchWrap">
-      <label class="sr-only" for="globalSearch">Search topics and 108,000 video titles</label>
+      <label class="sr-only" for="globalSearch">Search your local library</label>
       <div class="search-box">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
-        <input id="globalSearch" type="search" placeholder="Search 108,000 videos or 480 topics…" autocomplete="off" spellcheck="false">
+        <input id="globalSearch" type="search" placeholder="Search your library…" autocomplete="off" spellcheck="false">
         <span class="search-kbd"><kbd>⌘</kbd><kbd>K</kbd></span>
         <button class="search-clear" id="searchClear" aria-label="Clear search">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -809,6 +977,10 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
     </div>
 
     <div class="header-actions">
+      <button class="icon-btn" id="libraryBtn" title="My local library" aria-label="Open my local library">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H9v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M9 4h5.5A1.5 1.5 0 0 1 16 5.5v13a1.5 1.5 0 0 1-1.5 1.5H9"/><path d="M19 6v12"/></svg>
+        <span class="count" id="libraryCount">0</span>
+      </button>
       <button class="icon-btn" id="browseBtn" title="Browse all topics" aria-label="Browse all topics">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
       </button>
@@ -827,29 +999,29 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
     <div class="filter-scroll" id="categoryChips" role="group" aria-label="Filter by discipline"></div>
     <div class="filter-spacer"></div>
     <div class="index-status" id="indexStatus" data-state="idle" title="Global title index status">
-      <span class="led"></span><span id="indexStatusText">Title index idle</span>
+      <span class="led"></span><span id="indexStatusText">Local library</span>
     </div>
   </div>
 
   <main class="stage" id="stage">
-    <div id="canvasHost" aria-label="3D knowledge graph of 480 topics" role="img"></div>
-    <div class="labels" id="labels" aria-hidden="true"></div>
+    <div id="canvasHost" aria-label="3D knowledge graph of your library" role="img"></div>
+    <div class="labels" id="labels"></div>
 
     <div class="hud">
       <div class="hud-title">
-        <div class="eyebrow"><span class="line"></span><span>Knowledge graph</span></div>
-        <h1>Your second brain,<br><span class="accent">mapped in 3D.</span></h1>
-        <p>Pre-computed coordinates. Shards fetched on demand. Nothing simulated in the browser except the orbit.</p>
+        <div class="eyebrow"><span class="line"></span><span>Personal knowledge graph</span></div>
+        <h1>Your library,<br><span class="accent">mapped in 3D.</span></h1>
+        <p id="hudCopy">Add links or import your watch history. Topics become clusters; everything stays on this Mac.</p>
         <div class="hud-stats">
-          <div class="hud-stat"><div class="v" id="statVideos">—</div><div class="k">videos</div></div>
-          <div class="hud-stat"><div class="v" id="statTopics">—</div><div class="k">topics</div></div>
-          <div class="hud-stat"><div class="v" id="statEdges">—</div><div class="k">links</div></div>
+          <div class="hud-stat"><div class="v" id="statVideos">0</div><div class="k">videos</div></div>
+          <div class="hud-stat"><div class="v" id="statTopics">0</div><div class="k">topics</div></div>
+          <div class="hud-stat"><div class="v" id="statEdges">0</div><div class="k">links</div></div>
           <div class="hud-stat"><div class="v" id="statFps">60</div><div class="k">fps</div></div>
         </div>
       </div>
 
       <div class="legend" id="legend">
-        <div class="legend-head"><span>Disciplines</span><span id="legendCount">12</span></div>
+        <div class="legend-head"><span id="legendTitle">Disciplines</span><span id="legendCount">12</span></div>
         <div class="legend-list" id="legendList"></div>
       </div>
 
@@ -866,18 +1038,19 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
         <button id="resetView" title="Reset view" aria-label="Reset view"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
       </div>
 
-      <div class="onboard" id="onboard" hidden>
-        <h4>Start with a cluster</h4>
-        <p>Each sphere is a topic. Its size is the log of its video count. This build ships a synthetic 108k corpus — swap in a real export with the same schema.</p>
-        <ol>
-          <li>Click a node to load that shard.</li>
-          <li>Star videos to keep them offline.</li>
-          <li>Search across every title, instantly.</li>
-        </ol>
-        <div class="row">
-          <button class="start" id="onboardStart">Open Transformer Architecture →</button>
-          <button class="dismiss" id="onboardDismiss">Dismiss</button>
+    </div>
+
+    <div class="empty-stage" id="emptyStage" hidden>
+      <div class="empty-card">
+        <div class="empty-orb" aria-hidden="true"></div>
+        <div class="eyebrow"><span class="line"></span><span>Nothing indexed yet</span></div>
+        <h2>Start with your own videos</h2>
+        <p>Paste a few YouTube links, or import <code>watch-history.json</code> from Google Takeout. Records, metadata and thumbnails stay in this browser on this Mac.</p>
+        <div class="empty-actions">
+          <button class="btn-primary" id="emptyAdd">Add videos</button>
+          <button class="lib-btn" id="emptyImport">Import history</button>
         </div>
+        <div class="empty-note">No account. No cookies. No upload. The same list virtualizes to 100k items.</div>
       </div>
     </div>
 
@@ -886,7 +1059,7 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
     <div class="graph-fallback" id="graphFallback">
       <div class="box">
         <h3>WebGL is unavailable</h3>
-        <p>The 3D graph needs WebGL, but the full library still works. Browse all 480 topics as a sortable list.</p>
+        <p>The 3D graph needs WebGL, but the full library still works. Browse your topics as a sortable list.</p>
         <button class="btn-primary" id="fallbackBrowse">Browse topics</button>
       </div>
     </div>
@@ -941,6 +1114,59 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
   </div>
 </aside>
 
+<div class="library-scrim" id="libraryScrim"></div>
+<section class="library-sheet" id="libraryPanel" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="libraryTitle">
+  <div class="library-head">
+    <div style="min-width:0;flex:1">
+      <div class="drawer-eyebrow"><span class="dot" style="background:var(--good)"></span><span>Stored on this Mac</span></div>
+      <h2 id="libraryTitle">My YouTube library</h2>
+      <p>Import links or your Google Takeout history. Everything stays in this browser profile on this Mac.</p>
+    </div>
+    <button class="close-btn" id="libraryClose" aria-label="Close library">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="library-body">
+    <div class="privacy">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      <span><strong>Local only.</strong> Records live in IndexedDB on this Mac. Metadata and thumbnails are fetched by your local server when you add a link, then stored offline. No account, no cookies, no upload.</span>
+    </div>
+
+    <label class="lib-label" for="libraryUrls">Add YouTube links — one per line</label>
+    <textarea id="libraryUrls" class="lib-textarea" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…
+https://youtu.be/…
+https://www.youtube.com/shorts/…"></textarea>
+    <div class="lib-add-row">
+      <input id="libraryTopic" class="lib-input" list="libraryTopics" placeholder="Topic (default: Unsorted)" autocomplete="off">
+      <datalist id="libraryTopics"></datalist>
+      <button class="lib-btn primary" id="libraryAdd">Add videos</button>
+    </div>
+    <div class="lib-status" id="libraryStatus" aria-live="polite"></div>
+    <label class="lib-label" for="importGroup" style="margin-top:12px">History grouping (Takeout imports)</label>
+    <select id="importGroup" class="lib-input" style="width:100%">
+      <option value="single">One topic for the whole history</option>
+      <option value="channel">By channel (top 24, rest grouped)</option>
+      <option value="year">By year watched</option>
+    </select>
+
+    <div class="lib-tools">
+      <button class="lib-btn" id="libraryImport">Import Takeout / JSON</button>
+      <button class="lib-btn" id="libraryExport">Export backup</button>
+      <button class="lib-btn danger" id="libraryClear">Clear library</button>
+      <input type="file" id="libraryFile" accept="application/json,.json" hidden>
+    </div>
+
+    <div class="takeout-hint">
+      <strong>Have a Google Takeout archive?</strong> Choose <code>YouTube and YouTube Music → history</code>,
+      format <code>JSON</code>, then import <code>watch-history.json</code>. Parsing happens in this tab; the file is never uploaded.
+      Duplicates are removed. Thumbnails are skipped for bulk imports.
+    </div>
+
+    <div class="lib-list-head"><span>Saved videos</span><span id="libraryListCount">0</span></div>
+    <div class="lib-list" id="libraryList"></div>
+  </div>
+</section>
+
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.js"></script>
@@ -964,13 +1190,13 @@ kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid v
 </script>
 <script type="module">
 /* ==========================================================================
-   YouTube Second Brain 100k — application
+   Second Brain — application
    Vanilla ES module. No bundler, no framework, no backend.
 
    Section map
    1. constants + formatting
    2. persistence (localStorage, IndexedDB)
-   3. data layer (manifest, search indexes, shard cache)
+   3. data layer (local topic payloads + lazy search index)
    4. 3D graph
    5. drawer + virtual list
    6. search
@@ -989,9 +1215,8 @@ const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isMobile = () => matchMedia('(max-width: 860px)').matches;
 
 const STORE_KEY = 'yt-second-brain:v1';
-const ONBOARD_KEY = 'yt-second-brain:onboarded';
 const DB_NAME = 'yt-second-brain';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const dn = new Intl.NumberFormat('en-US');
 const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
@@ -1052,13 +1277,10 @@ const state = {
   topics: [],
   topicById: new Map(),
   categories: [],
-  topicIndex: null,
-  videoIndex: null,
-  videoIndexStatus: 'idle', // idle | loading | ready | error
-  videoIndexPct: 0,
-  videoIndexSource: '',
-  videoIndexPromise: null,
   category: 'all',
+  mode: 'library',
+  library: { videos: [], loaded: false },
+  personal: { manifest: null, topics: [], searchIndex: null, searchStatus: 'idle' },
   bookmarks: {},
   theme: 'dark',
   recent: [],
@@ -1077,6 +1299,7 @@ function loadStore() {
     const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
     if (!raw || typeof raw !== 'object') return;
     if (raw.theme === 'light' || raw.theme === 'dark') state.theme = raw.theme;
+    if (raw.mode === 'library' || raw.mode === 'demo') state.mode = raw.mode;
     if (raw.bookmarks && typeof raw.bookmarks === 'object') state.bookmarks = raw.bookmarks;
     if (Array.isArray(raw.recent)) state.recent = raw.recent.filter((x) => typeof x === 'string').slice(0, 6);
   } catch (err) { /* corrupted storage: start clean */ }
@@ -1087,6 +1310,7 @@ function saveStore() {
     localStorage.setItem(STORE_KEY, JSON.stringify({
       version: 1,
       theme: state.theme,
+      mode: state.mode,
       bookmarks: state.bookmarks,
       recent: state.recent,
       savedAt: new Date().toISOString()
@@ -1096,7 +1320,7 @@ function saveStore() {
   }
 }
 
-/* --- IndexedDB cache (shards + title index) --- */
+/* --- IndexedDB: personal library + legacy caches --- */
 let dbPromise = null;
 function db() {
   if (!('indexedDB' in window)) return Promise.resolve(null);
@@ -1107,6 +1331,7 @@ function db() {
       const idb = req.result;
       if (!idb.objectStoreNames.contains('shards')) idb.createObjectStore('shards', { keyPath: 'id' });
       if (!idb.objectStoreNames.contains('assets')) idb.createObjectStore('assets', { keyPath: 'key' });
+      if (!idb.objectStoreNames.contains('library')) idb.createObjectStore('library', { keyPath: 'key' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => resolve(null);
@@ -1142,126 +1367,584 @@ async function dbPut(store, value) {
 }
 
 /* ------------------------------------------------------------------ *
+ * 2b. local library (personal YouTube collection)
+ * ------------------------------------------------------------------ */
+const LIBRARY_KEY = 'yt-second-brain:library';
+const slugifyName = (s) => String(s).toLowerCase()
+  .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'topic';
+
+function parseYouTubeId(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return null;
+  if (/^[A-Za-z0-9_-]{11}$/.test(raw)) return raw;
+  let url;
+  try { url = new URL(raw); } catch (err) { return null; }
+  const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '');
+  const valid = (id) => (/^[A-Za-z0-9_-]{11}$/.test(id || '') ? id : null);
+  if (host === 'youtu.be') return valid(url.pathname.split('/').filter(Boolean)[0]);
+  if (host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtube-nocookie.com') {
+    if (url.pathname === '/watch') return valid(url.searchParams.get('v'));
+    const m = url.pathname.match(/^\/(?:shorts|embed|live|v)\/([^/?#]+)/);
+    if (m) return valid(m[1]);
+  }
+  return null;
+}
+
+async function loadLibrary() {
+  const rec = await dbGet('library', LIBRARY_KEY);
+  const videos = Array.isArray(rec?.videos) ? rec.videos : [];
+  state.library = { videos, loaded: true };
+  updateLibraryCount();
+  return state.library;
+}
+
+async function saveLibrary() {
+  await dbPut('library', {
+    key: LIBRARY_KEY, version: 1,
+    savedAt: new Date().toISOString(),
+    videos: state.library.videos
+  });
+  updateLibraryCount();
+}
+
+function updateLibraryCount() {
+  const n = state.library.videos.length;
+  const a = document.getElementById('libraryCount');
+  const b = document.getElementById('tabLibraryCount');
+  if (a) a.textContent = String(n);
+  if (b) b.textContent = String(n);
+  const btn = document.getElementById('libraryBtn');
+  if (btn) btn.setAttribute('aria-label', `My local library, ${n} ${n === 1 ? 'video' : 'videos'}`);
+}
+
+function normaliseRecord(record, fallbackTopic = 'Unsorted', source = 'manual') {
+  const id = record.id || parseYouTubeId(record.url || record.titleUrl || '');
+  if (!id) return null;
+  const now = new Date().toISOString();
+  const addedAt = (() => {
+    const raw = record.addedAt || record.time || record.published;
+    const d = raw ? new Date(raw) : new Date();
+    return Number.isFinite(d.getTime()) ? d.toISOString() : now;
+  })();
+  const title = String(record.title || record.name || `YouTube video ${id}`)
+    .replace(/^Watched\s+/i, '')
+    .replace(/^Watched a video on YouTube$/i, '')
+    .trim() || `YouTube video ${id}`;
+  return {
+    id,
+    title,
+    channel: String(record.channel || record.author_name || 'Unknown channel').slice(0, 200),
+    channelId: record.channelId || 'personal',
+    thumb: record.thumb || record.thumbnail || '',
+    topicName: String(record.topicName || fallbackTopic || 'Unsorted').trim() || 'Unsorted',
+    source: record.source || source,
+    addedAt,
+    published: String(record.published || addedAt).slice(0, 10),
+    duration: Number(record.duration) || 0,
+    views: Number(record.views) || 0,
+    type: record.type || 'video',
+    url: record.url || `https://www.youtube.com/watch?v=${id}`
+  };
+}
+
+function mergeLibraryRecords(records, fallbackTopic = 'Unsorted', source = 'manual') {
+  const existing = new Set(state.library.videos.map((v) => v.id));
+  let added = 0;
+  let skipped = 0;
+  for (const raw of records) {
+    const rec = normaliseRecord(raw, fallbackTopic, source);
+    if (!rec) { skipped++; continue; }
+    if (existing.has(rec.id)) { skipped++; continue; }
+    existing.add(rec.id);
+    state.library.videos.push(rec);
+    added++;
+  }
+  return { added, skipped };
+}
+
+function buildPersonalDataset() {
+  const videos = state.library.videos;
+  const groups = new Map();
+  for (const v of videos) {
+    if (!groups.has(v.topicName)) groups.set(v.topicName, []);
+    groups.get(v.topicName).push(v);
+  }
+  const names = [...groups.keys()].sort((a, b) => a.localeCompare(b));
+  const n = names.length;
+  const usedIds = new Set();
+
+  const topics = names.map((name, i) => {
+    const list = groups.get(name).slice()
+      .sort((a, b) => String(b.addedAt || '').localeCompare(String(a.addedAt || '')));
+    let pos = [0, 0, 0];
+    if (n > 1) {
+      if (n <= 6) {
+        // small collections read better as a flat ring than as two poles
+        const angle = (i / n) * Math.PI * 2;
+        const R = n === 2 ? 2.7 : 3.3;
+        pos = [Math.cos(angle) * R, Math.sin(angle) * R, 0];
+      } else {
+        const y = 1 - (i / (n - 1)) * 2;
+        const r = Math.sqrt(Math.max(0, 1 - y * y));
+        const theta = i * 2.399963229728653;
+        const R = 5.4 + Math.min(3.6, Math.log2(n + 1) * 0.85);
+        pos = [Math.cos(theta) * r * R, y * R * 0.72, Math.sin(theta) * r * R];
+      }
+    }
+    const hue = Math.round((i * 137.508 + 195) % 360);
+    let id = `lib_${slugifyName(name)}`;
+    let k = 2;
+    while (usedIds.has(id)) id = `lib_${slugifyName(name)}_${k++}`;
+    usedIds.add(id);
+    const topic = {
+      id, name, category: 'library', categoryName: 'My library',
+      count: list.length, hue,
+      radius: Number((0.34 + 0.24 * Math.log(list.length + 1)).toFixed(3)),
+      pos: pos.map((v) => Number(v.toFixed(3))),
+      shard: null
+    };
+    list.forEach((v) => { v.topicId = id; v.topicName = name; });
+    topic.__shard = {
+      version: 1, id, name, slug: id, category: 'library', categoryName: 'My library',
+      count: list.length, generatedAt: new Date().toISOString(),
+      synthetic: false, personal: true, videos: list
+    };
+    return topic;
+  });
+
+  const edges = [];
+  const seen = new Set();
+  for (let i = 0; i < topics.length; i++) {
+    const near = topics
+      .map((t, j) => ({ j, d: j === i ? Infinity : (topics[i].pos[0] - t.pos[0]) ** 2 + (topics[i].pos[1] - t.pos[1]) ** 2 + (topics[i].pos[2] - t.pos[2]) ** 2 }))
+      .sort((a, b) => a.d - b.d).slice(0, 2);
+    for (const { j, d } of near) {
+      if (!Number.isFinite(d)) continue;
+      const a = Math.min(i, j); const b = Math.max(i, j);
+      const key = `${a}-${b}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      edges.push([a, b, Number((0.85 / (1 + d * 0.08)).toFixed(2))]);
+    }
+  }
+
+  const manifest = {
+    version: 1,
+    name: 'My YouTube library',
+    generatedAt: new Date().toISOString(),
+    personal: true,
+    synthetic: false,
+    totals: {
+      videos: videos.length,
+      topics: topics.length,
+      categories: 1,
+      channels: new Set(videos.map((v) => v.channel)).size,
+      shards: 0
+    },
+    categories: topics.map((t) => ({
+      id: t.id, name: t.name, short: t.name, hue: t.hue,
+      blurb: `${t.count} locally saved ${t.count === 1 ? 'video' : 'videos'}.`,
+      count: t.count, centre: t.pos
+    })),
+    topics,
+    edges,
+    assets: {}
+  };
+
+  state.personal = { manifest, topics, searchIndex: null, searchStatus: 'idle' };
+  return state.personal;
+}
+
+function paintModeChrome() {
+  if (!state.manifest) return;
+  const m = state.manifest;
+  const emptyStateNow = m.topics.length === 0;
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  set('brandVideos', `${fmtNum(m.totals.videos)} saved`);
+  set('brandTopics', `${fmtNum(m.totals.topics)} topics`);
+  set('brandCategories', 'on this Mac');
+  set('statVideos', fmtNum(m.totals.videos));
+  set('statTopics', fmtNum(m.totals.topics));
+  set('statEdges', fmtNum(m.edges.length));
+  const fpsEl = document.getElementById('statFps');
+  if (fpsEl && emptyStateNow) fpsEl.textContent = '—';
+  set('hudCopy', 'Add links or import your watch history. Topics become clusters; everything stays on this Mac.');
+  document.title = m.totals.videos
+    ? `My library — ${fmtNum(m.totals.videos)} videos`
+    : 'Second Brain — your YouTube library';
+  const badge = document.getElementById('brandBadge');
+  if (badge) badge.textContent = 'LOCAL';
+  const search = document.getElementById('globalSearch');
+  if (search) {
+    search.placeholder = m.totals.videos
+      ? `Search your library (${fmtNum(m.totals.videos)} videos)…`
+      : 'Search your library…';
+    search.setAttribute('aria-label', 'Search your local library');
+  }
+  const legendTitle = document.getElementById('legendTitle');
+  if (legendTitle) legendTitle.textContent = 'Topics';
+  const legendCount = document.getElementById('legendCount');
+  if (legendCount) legendCount.textContent = String(m.totals.topics);
+
+  const empty = m.topics.length === 0;
+  const emptyStage = document.getElementById('emptyStage');
+  if (emptyStage) emptyStage.hidden = !empty;
+  const legend = document.getElementById('legend');
+  if (legend) legend.style.display = empty ? 'none' : '';
+  const hint = document.querySelector('.hint-pill');
+  if (hint) hint.style.display = empty ? 'none' : '';
+  const tools = document.querySelector('.orbit-tools');
+  if (tools) tools.hidden = empty;
+  updateLibraryCount();
+}
+
+function graphHooks() {
+  return {
+    onHover,
+    onOpen: (id) => openDrawer('topic', { topicId: id }),
+    getCategory: () => state.category,
+    getSelected: () => (state.drawer.mode === 'topic' ? state.drawer.topic?.id : null),
+    onCategory: (id) => setCategory(state.category === id ? 'all' : id),
+    onResetCategory: () => { state.category = 'all'; paintCategoryChrome(); },
+    onFps: (fps) => { const el = $('#statFps'); if (el) el.textContent = String(fps); }
+  };
+}
+
+function activateDataset(manifest, opts = {}) {
+  state.manifest = manifest;
+  state.topics = manifest.topics;
+  state.topicById = new Map(manifest.topics.map((t) => [t.id, t]));
+  state.categories = manifest.categories;
+  state.category = 'all';
+
+  if (state.graph) { try { state.graph.destroy(); } catch (err) { /* ignore */ } state.graph = null; }
+  const host = $('#canvasHost');
+  $('#graphFallback').classList.remove('is-on');
+  const labels = document.getElementById('labels');
+  if (labels) labels.innerHTML = '';
+  if (manifest.topics.length) {
+    host.style.display = '';
+    try {
+      state.graph = new KnowledgeGraph(host, manifest, graphHooks());
+    } catch (err) {
+      console.warn('WebGL unavailable', err);
+      $('#graphFallback').classList.add('is-on');
+      host.style.display = 'none';
+    }
+  } else {
+    host.style.display = 'none';
+  }
+
+  closeSearch();
+  if (!opts.initial) {
+    closeDrawer({ keepHash: true });
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  paintCategoryChrome();
+  paintModeChrome();
+  updateIndexStatus();
+  schedulePersonalIndex();
+}
+
+function schedulePersonalIndex() {
+  if (!window.MiniSearch || !state.library.videos.length) return;
+  if (state.personal.searchIndex) return;
+  state.personal.searchStatus = 'pending';
+  const build = () => {
+    try {
+      const ms = new window.MiniSearch({
+        idField: 'id', fields: ['title', 'channel', 'topicName'], storeFields: ['id'],
+        searchOptions: { prefix: true, fuzzy: 0.15, boost: { title: 2 } }
+      });
+      ms.addAll(state.library.videos);
+      state.personal.searchIndex = ms;
+      state.personal.searchStatus = 'ready';
+    } catch (err) {
+      state.personal.searchStatus = 'error';
+    }
+    if (state.search.q) runSearch(state.search.q);
+  };
+  if (state.library.videos.length > 2000 && 'requestIdleCallback' in window) requestIdleCallback(build, { timeout: 5000 });
+  else setTimeout(build, 0);
+}
+
+/* ---- library panel ---- */
+let lastLibraryFocus = null;
+
+function openLibrary() {
+  if (state.drawer.mode) closeDrawer();
+  const panel = document.getElementById('libraryPanel');
+  const scrim = document.getElementById('libraryScrim');
+  if (!panel) return;
+  lastLibraryFocus = document.activeElement;
+  renderLibraryList();
+  paintModeChrome();
+  panel.classList.add('is-open');
+  panel.setAttribute('aria-hidden', 'false');
+  scrim.classList.add('is-open');
+  setTimeout(() => document.getElementById('libraryUrls')?.focus(), 80);
+}
+
+function closeLibrary() {
+  const panel = document.getElementById('libraryPanel');
+  const scrim = document.getElementById('libraryScrim');
+  if (!panel) return;
+  panel.classList.remove('is-open');
+  panel.setAttribute('aria-hidden', 'true');
+  scrim.classList.remove('is-open');
+  if (lastLibraryFocus?.focus) setTimeout(() => lastLibraryFocus.focus(), 40);
+}
+
+function libraryStatus(message, kind = '') {
+  const el = document.getElementById('libraryStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.toggle('is-error', kind === 'error');
+  el.classList.toggle('is-ok', kind === 'ok');
+}
+
+function libraryThumb(video) {
+  const hue = hueFor(video.channel || video.id);
+  if (video.thumb) {
+    return `<div class="lib-thumb" style="--h:${hue}"><img src="${escapeHtml(video.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"></div>`;
+  }
+  return `<div class="lib-thumb" style="--h:${hue}"><span class="ph"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg></span></div>`;
+}
+
+function renderLibraryList() {
+  const list = document.getElementById('libraryList');
+  const head = document.getElementById('libraryListCount');
+  if (!list) return;
+  const videos = state.library.videos.slice()
+    .sort((a, b) => String(b.addedAt || '').localeCompare(String(a.addedAt || '')));
+  if (head) head.textContent = `${fmtNum(videos.length)} total`;
+  if (!videos.length) {
+    list.innerHTML = `<div class="lib-empty">No videos yet. Paste a YouTube link above, or import <code>watch-history.json</code> from Google Takeout.</div>`;
+    return;
+  }
+  const shown = videos.slice(0, 100);
+  let html = '';
+  for (const v of shown) {
+    const meta = [v.channel, v.topicName, v.published ? relDate(v.published) : ''].filter(Boolean).join(' · ');
+    html += `<div class="lib-item">
+      ${libraryThumb(v)}
+      <div class="lib-main">
+        <div class="lib-title">${escapeHtml(v.title)}</div>
+        <div class="lib-meta">${escapeHtml(meta)}</div>
+      </div>
+      <div class="lib-actions">
+        <button data-act="edit" data-id="${escapeHtml(v.id)}" title="Edit title and topic" aria-label="Edit ${escapeHtml(v.title)}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="m13 5 4 4"/></svg>
+        </button>
+        <a href="${escapeHtml(v.url || `https://www.youtube.com/watch?v=${v.id}`)}" target="_blank" rel="noopener noreferrer" title="Open on YouTube" aria-label="Open ${escapeHtml(v.title)} on YouTube">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 4h6v6M20 4l-8.5 8.5"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>
+        </a>
+        <button class="del" data-act="remove" data-id="${escapeHtml(v.id)}" title="Remove from library" aria-label="Remove ${escapeHtml(v.title)}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }
+  if (videos.length > shown.length) {
+    html += `<div class="lib-empty">Showing the latest ${shown.length} of ${fmtNum(videos.length)}. Older entries are still searchable and browsable in the graph.</div>`;
+  }
+  list.innerHTML = html;
+}
+
+async function fetchOembed(id) {
+  try {
+    const res = await fetch(`/api/oembed?id=${encodeURIComponent(id)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return { ok: true, title: data.title || '', channel: data.author_name || '', thumb: data.thumbnail || '' };
+  } catch (err) {
+    return { ok: false, title: '', channel: '', thumb: '' };
+  }
+}
+
+async function addLibraryFromUrls() {
+  const area = document.getElementById('libraryUrls');
+  const btn = document.getElementById('libraryAdd');
+  const ids = [];
+  const seen = new Set();
+  for (const line of String(area.value || '').split(/\s+/)) {
+    const id = parseYouTubeId(line);
+    if (id && !seen.has(id)) { seen.add(id); ids.push(id); }
+  }
+  if (!ids.length) { libraryStatus('No valid YouTube links found.', 'error'); return; }
+  if (ids.length > 100) { libraryStatus('Please add at most 100 links per batch.', 'error'); return; }
+
+  const topic = (document.getElementById('libraryTopic').value || '').trim() || 'Unsorted';
+  const existing = new Set(state.library.videos.map((v) => v.id));
+  const fresh = ids.filter((id) => !existing.has(id));
+  if (!fresh.length) { libraryStatus('Those links are already in your library.', 'error'); return; }
+
+  btn.disabled = true;
+  let fallback = 0;
+  try {
+    for (let i = 0; i < fresh.length; i++) {
+      const id = fresh[i];
+      libraryStatus(`Fetching metadata ${i + 1}/${fresh.length}…`);
+      const meta = await fetchOembed(id);
+      if (!meta.ok) fallback++;
+      const now = new Date().toISOString();
+      state.library.videos.push(normaliseRecord({
+        id, title: meta.title || `YouTube video ${id}`, channel: meta.channel || 'Unknown channel',
+        thumb: meta.thumb, topicName: topic, source: 'manual',
+        addedAt: now, published: now.slice(0, 10)
+      }, topic, 'manual'));
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    await saveLibrary();
+    buildPersonalDataset();
+    activateDataset(state.personal.manifest, 'library');
+    area.value = '';
+    renderLibraryList();
+    libraryStatus(`Added ${fresh.length} video${fresh.length === 1 ? '' : 's'}${fallback ? ` · ${fallback} without metadata (saved by URL)` : ''}.`, 'ok');
+    toast(`Added ${fresh.length} to your library`);
+  } catch (err) {
+    libraryStatus(`Could not add videos: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function takeoutToRecords(list, group = 'single', topic = 'Watch history') {
+  const channelCount = new Map();
+  if (group === 'channel') {
+    for (const e of list) {
+      const ch = e.subtitles?.[0]?.name || e.channel || 'Unknown channel';
+      channelCount.set(ch, (channelCount.get(ch) || 0) + 1);
+    }
+  }
+  const topChannels = new Set([...channelCount.entries()]
+    .sort((a, b) => b[1] - a[1]).slice(0, 24).map(([name]) => name));
+
+  const out = [];
+  for (const entry of list) {
+    const id = parseYouTubeId(entry.titleUrl || entry.url || entry.id || '');
+    if (!id) continue;
+    const channel = entry.subtitles?.[0]?.name || entry.channel || 'Unknown channel';
+    const when = entry.time || entry.addedAt || entry.published;
+    let topicName = topic || 'Watch history';
+    if (group === 'year') {
+      const year = when ? String(when).slice(0, 4) : '';
+      topicName = /^\d{4}$/.test(year) ? year : 'Unknown year';
+    } else if (group === 'channel') {
+      topicName = topChannels.has(channel) ? channel : 'Other channels';
+    }
+    out.push({
+      id,
+      title: entry.title || entry.name,
+      channel,
+      addedAt: when,
+      published: when ? String(when).slice(0, 10) : undefined,
+      topicName,
+      source: 'takeout'
+    });
+  }
+  return out;
+}
+
+async function importTakeoutEntries(entries, group = 'single', topic = 'Watch history') {
+  const records = takeoutToRecords(entries, group, topic);
+  const merged = mergeLibraryRecords(records, topic, 'takeout');
+  await saveLibrary();
+  buildPersonalDataset();
+  activateDataset(state.personal.manifest);
+  renderLibraryList();
+  return merged;
+}
+
+async function importLibraryFile(file) {
+  if (!file) return;
+  libraryStatus('Reading file…');
+  try {
+    const text = await file.text();
+    if (text.length > 120 * 1024 * 1024) throw new Error('File is larger than 120 MB');
+    const payload = JSON.parse(text);
+    const isTakeout = Array.isArray(payload);
+    const list = Array.isArray(payload) ? payload : (Array.isArray(payload.videos) ? payload.videos : null);
+    if (!list) throw new Error('Expected a Takeout array or an exported { videos: [...] } file');
+
+    const topicInput = (document.getElementById('libraryTopic').value || '').trim();
+    const group = document.getElementById('importGroup')?.value || 'single';
+    let records;
+    let skipped = 0;
+    if (isTakeout) {
+      records = takeoutToRecords(list, group, topicInput || 'Watch history');
+      skipped = list.length - records.length;
+    } else {
+      records = list;
+    }
+    const before = state.library.videos.length;
+    const merged = mergeLibraryRecords(records, topicInput || (isTakeout ? 'Watch history' : 'Unsorted'), isTakeout ? 'takeout' : 'import');
+    if (!merged.added) {
+      libraryStatus(`No new videos. ${merged.skipped} duplicates or invalid entries skipped.`, 'error');
+      return;
+    }
+    await saveLibrary();
+    buildPersonalDataset();
+    activateDataset(state.personal.manifest, 'library');
+    renderLibraryList();
+    libraryStatus(`Imported ${merged.added} new videos (${fmtNum(state.library.videos.length)} total). ${merged.skipped + skipped} skipped.`, 'ok');
+    toast(`${merged.added} videos imported locally`);
+  } catch (err) {
+    libraryStatus(`Import failed: ${err.message}`, 'error');
+  }
+}
+
+function exportLibrary() {
+  if (!state.library.videos.length) { libraryStatus('Nothing to export yet.', 'error'); return; }
+  const payload = { version: 1, exportedAt: new Date().toISOString(), videos: state.library.videos };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `my-youtube-library-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  libraryStatus(`Exported ${fmtNum(state.library.videos.length)} videos as a JSON backup.`, 'ok');
+}
+
+async function clearLibraryData() {
+  state.library.videos = [];
+  await saveLibrary();
+  buildPersonalDataset();
+  renderLibraryList();
+  activateDataset(state.personal.manifest);
+  libraryStatus('Library cleared from this browser.', 'ok');
+  toast('Local library cleared');
+}
+
+async function mergeLibraryForTest(records, topic = 'Tests') {
+  const merged = mergeLibraryRecords(records, topic, 'test');
+  await saveLibrary();
+  buildPersonalDataset();
+  activateDataset(state.personal.manifest, 'library');
+  renderLibraryList();
+  return merged;
+}
+
+/* ------------------------------------------------------------------ *
  * 3. data layer
  * ------------------------------------------------------------------ */
-async function fetchJSON(url) {
-  const res = await fetch(url, { cache: 'no-cache' });
-  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
-  return res.json();
-}
-
-async function fetchTextWithProgress(url, onProgress) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
-  const total = Number(res.headers.get('content-length') || 0);
-  if (!res.body || !total) {
-    const text = await res.text();
-    onProgress?.(1);
-    return text;
-  }
-  const reader = res.body.getReader();
-  const chunks = [];
-  let received = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-    onProgress?.(Math.min(1, received / total));
-  }
-  const merged = new Uint8Array(received);
-  let offset = 0;
-  for (const c of chunks) { merged.set(c, offset); offset += c.length; }
-  return new TextDecoder('utf-8').decode(merged);
-}
-
-function fallbackSearch(docs, q, limit = 8) {
+function searchTopics(q, limit = 6) {
   const needle = q.toLowerCase().trim();
   if (!needle) return [];
-  const scored = [];
-  for (const d of docs) {
-    const hay = `${d.name || d.title || ''} ${d.channel || ''} ${d.categoryName || ''}`.toLowerCase();
-    const idx = hay.indexOf(needle);
-    if (idx === -1) continue;
-    scored.push({ ...d, score: 100 - Math.min(idx, 90), id: d.id });
-    if (scored.length > 500) break;
-  }
-  return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+  return state.personal.topics
+    .filter((t) => t.name.toLowerCase().includes(needle))
+    .slice(0, limit)
+    .map((t) => ({
+      type: 'topic', name: t.name, slug: t.id, category: t.id,
+      categoryName: 'My library', count: t.count, hue: t.hue
+    }));
 }
-
-function searchTopics(q, limit = 6) {
-  if (!state.topicIndex) return [];
-  try {
-    return state.topicIndex.search(q, { prefix: true, fuzzy: 0.2, limit })
-      .filter((r) => r.type === 'topic');
-  } catch (err) { return []; }
-}
-
-async function loadVideoIndex() {
-  if (state.videoIndex || state.videoIndexPromise) return state.videoIndexPromise;
-  state.videoIndexPromise = (async () => {
-    try {
-      state.videoIndexStatus = 'loading';
-      updateIndexStatus();
-      const cached = await dbGet('assets', 'video_index');
-      let text = '';
-      let source = 'network';
-      if (cached?.text && cached.text.length > 1000) {
-        text = cached.text;
-        source = 'cache';
-        state.videoIndexPct = 1;
-        updateIndexStatus();
-      } else {
-        text = await fetchTextWithProgress('data/video_index.json', (p) => {
-          state.videoIndexPct = p;
-          updateIndexStatus();
-        });
-        await dbPut('assets', { key: 'video_index', text, savedAt: Date.now() });
-      }
-      state.videoIndexSource = source;
-      state.videoIndex = window.MiniSearch
-        ? window.MiniSearch.loadJSON(text, {
-            fields: ['t'], storeFields: ['k', 'n'], idField: 'id'
-          })
-        : null;
-      if (!state.videoIndex) throw new Error('MiniSearch failed to load');
-      state.videoIndexStatus = 'ready';
-      updateIndexStatus();
-      if (state.search.q) runSearch(state.search.q);
-    } catch (err) {
-      state.videoIndexStatus = 'error';
-      updateIndexStatus();
-      console.warn('Title index unavailable:', err);
-    }
-    return state.videoIndex;
-  })();
-  return state.videoIndexPromise;
-}
-
-const shardMemory = new Map();
 
 async function getShard(topic) {
-  if (shardMemory.has(topic.id)) {
-    return { shard: shardMemory.get(topic.id), source: 'memory', bytes: 0, ms: 0 };
-  }
-  const started = performance.now();
-  const cached = await dbGet('shards', topic.id);
-  if (cached?.text) {
-    try {
-      const shard = JSON.parse(cached.text);
-      shardMemory.set(topic.id, shard);
-      return { shard, source: 'cache', bytes: cached.text.length, ms: Math.round(performance.now() - started) };
-    } catch (err) { /* fall through to network */ }
-  }
-  const url = `data/${topic.shard}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Shard ${topic.shard} → HTTP ${res.status}`);
-  const text = await res.text();
-  const shard = JSON.parse(text);
-  if (!Array.isArray(shard.videos)) throw new Error('Malformed shard');
-  shardMemory.set(topic.id, shard);
-  await dbPut('shards', { id: topic.id, text, savedAt: Date.now() });
-  return { shard, source: 'network', bytes: text.length, ms: Math.round(performance.now() - started) };
+  if (!topic.__shard) throw new Error('Topic not found in the local library');
+  return { shard: topic.__shard, source: 'local', bytes: 0, ms: 0 };
 }
 
 function ensureShardIndex(shard) {
@@ -1291,7 +1974,9 @@ class KnowledgeGraph {
     this.selectedIndex = -1;
     this.pointers = new Map();
     this.drag = { active: false, moved: 0, x: 0, y: 0 };
-    this.baseRadius = window.innerWidth < 640 ? 33 : window.innerWidth < 900 ? 27 : 24;
+    this.baseRadius = manifest.personal
+      ? Math.min(34, (manifest.topics.length <= 3 ? 14 : manifest.topics.length <= 8 ? 16 : manifest.topics.length <= 20 ? 19 : 24) + (window.innerWidth < 640 ? 5 : 0))
+      : window.innerWidth < 640 ? 33 : window.innerWidth < 900 ? 27 : 24;
     this.view = { theta: 0.72, phi: 1.12, radius: this.baseRadius, tTheta: 0.72, tPhi: 1.12, tRadius: this.baseRadius };
     this.lastInteract = performance.now();
     this.frames = 0;
@@ -1342,7 +2027,7 @@ class KnowledgeGraph {
       const na = topics[a], nb = topics[b];
       edgePositions.set(na.pos, k * 6);
       edgePositions.set(nb.pos, k * 6 + 3);
-      const hue = cats[catIndex.get(na.category)].hue;
+      const hue = na.hue ?? cats[catIndex.get(na.category)]?.hue ?? 200;
       const c = new THREE.Color().setHSL(hue / 360, 0.7, 0.55);
       edgeColors.set([c.r, c.g, c.b], k * 6);
       edgeColors.set([c.r, c.g, c.b], k * 6 + 3);
@@ -1366,7 +2051,7 @@ class KnowledgeGraph {
     const dummy = new THREE.Object3D();
     const baseColors = [];
     topics.forEach((t, i) => {
-      const hue = cats[catIndex.get(t.category)].hue;
+      const hue = t.hue ?? cats[catIndex.get(t.category)]?.hue ?? 200;
       const color = new THREE.Color().setHSL(hue / 360, 0.78, 0.56);
       baseColors.push(color);
       dummy.position.set(...t.pos);
@@ -1386,7 +2071,7 @@ class KnowledgeGraph {
     const sizes = new Float32Array(topics.length);
     const haloAlpha = new Float32Array(topics.length);
     topics.forEach((t, i) => {
-      const hue = cats[catIndex.get(t.category)].hue;
+      const hue = t.hue ?? cats[catIndex.get(t.category)]?.hue ?? 200;
       const c = new THREE.Color().setHSL(hue / 360, 0.78, 0.62);
       positions.set(t.pos, i * 3);
       colors.set([c.r, c.g, c.b], i * 3);
@@ -1453,20 +2138,35 @@ class KnowledgeGraph {
     this.selectRing.visible = false;
     this.scene.add(this.selectRing);
 
-    /* HTML labels */
+    /* HTML labels: category pills for the demo, topic pills for a personal library */
     this.labels = new Map();
+    this.nodeLabels = [];
     const labelLayer = document.getElementById('labels');
     labelLayer.innerHTML = '';
-    cats.forEach((c, i) => {
-      const el = document.createElement('button');
-      el.className = 'cat-label';
-      el.style.setProperty('--h', c.hue);
-      el.innerHTML = `<span class="dot"></span><span>${escapeHtml(c.short)}</span>`;
-      el.title = `Focus ${c.name}`;
-      el.addEventListener('click', () => this.hooks.onCategory(c.id));
-      labelLayer.appendChild(el);
-      this.labels.set(c.id, el);
-    });
+    if (this.manifest.personal) {
+      const list = topics.length <= 24 ? topics : [...topics].sort((a, b) => b.count - a.count).slice(0, 12);
+      for (const t of list) {
+        const el = document.createElement('button');
+        el.className = 'node-label';
+        el.style.setProperty('--h', t.hue ?? 200);
+        el.innerHTML = `<span>${escapeHtml(t.name)}</span><b>${fmtNum(t.count)}</b>`;
+        el.title = `Open ${t.name}`;
+        el.addEventListener('click', () => this.hooks.onOpen(t.id));
+        labelLayer.appendChild(el);
+        this.nodeLabels.push({ topic: t, el });
+      }
+    } else {
+      cats.forEach((c) => {
+        const el = document.createElement('button');
+        el.className = 'cat-label';
+        el.style.setProperty('--h', c.hue);
+        el.innerHTML = `<span class="dot"></span><span>${escapeHtml(c.short)}</span>`;
+        el.title = `Focus ${c.name}`;
+        el.addEventListener('click', () => this.hooks.onCategory(c.id));
+        labelLayer.appendChild(el);
+        this.labels.set(c.id, el);
+      });
+    }
     this.labelLayer = labelLayer;
   }
 
@@ -1547,7 +2247,7 @@ class KnowledgeGraph {
     const dummy = new THREE.Object3D();
     const fade = new THREE.Color(0x1a1c28);
     this.manifest.topics.forEach((t, i) => {
-      const isActive = activeCat === 'all' || t.category === activeCat;
+      const isActive = activeCat === 'all' || (this.manifest.personal ? t.id === activeCat : t.category === activeCat);
       dummy.position.set(...t.pos);
       dummy.scale.setScalar(isActive ? this.nodeScale[i] : this.nodeScale[i] * 0.82);
       dummy.updateMatrix();
@@ -1562,6 +2262,7 @@ class KnowledgeGraph {
     this.halos.geometry.getAttribute('aAlpha').needsUpdate = true;
     this.edgeMat.opacity = activeCat === 'all' ? 0.16 : 0.07;
     this.labels.forEach((el, id) => el.classList.toggle('is-muted', activeCat !== 'all' && id !== activeCat));
+    this.nodeLabels?.forEach(({ topic, el }) => el.classList.toggle('is-muted', activeCat !== 'all' && (this.manifest.personal ? topic.id !== activeCat : topic.category !== activeCat)));
   }
 
   focusCategory(catId) {
@@ -1571,7 +2272,9 @@ class KnowledgeGraph {
     const [x, y, z] = c.centre;
     this.view.tTheta = Math.atan2(x, z);
     this.view.tPhi = Math.acos(THREE.MathUtils.clamp(y / (Math.hypot(x, y, z) || 1), -1, 1));
-    this.view.tRadius = window.innerWidth < 640 ? 22 : 17;
+    this.view.tRadius = this.manifest.personal
+      ? Math.max(6, this.baseRadius * 0.6)
+      : window.innerWidth < 640 ? 22 : 17;
     this.lastInteract = performance.now();
   }
 
@@ -1598,6 +2301,23 @@ class KnowledgeGraph {
   labelFrame() {
     const { clientWidth: w, clientHeight: h } = this.host;
     const v = new THREE.Vector3();
+    if (this.manifest.personal) {
+      for (const { topic, el } of this.nodeLabels) {
+        const world = new THREE.Vector3(topic.pos[0], topic.pos[1], topic.pos[2]);
+        const dist = this.camera.position.distanceTo(world);
+        const rPx = (topic.radius / (Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * Math.max(1, dist))) * (h / 2);
+        world.project(this.camera);
+        const x = (world.x * 0.5 + 0.5) * w;
+        const y = (-world.y * 0.5 + 0.5) * h - rPx - 16;
+        if (world.z > 1 || x < -60 || x > w + 60 || y < -30 || y > h + 30) {
+          el.style.transform = 'translate3d(-999px,-999px,0)';
+          continue;
+        }
+        el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) translate(-50%,-50%)`;
+        el.style.opacity = world.z > 0.92 ? '0.4' : '';
+      }
+      return;
+    }
     this.manifest.categories.forEach((c) => {
       const el = this.labels.get(c.id);
       if (!el) return;
@@ -1689,6 +2409,17 @@ class KnowledgeGraph {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
+  }
+
+  destroy() {
+    cancelAnimationFrame(this.raf);
+    try { this.resizeObserver?.disconnect(); } catch (err) { /* ignore */ }
+    this.labels?.forEach((el) => el.remove());
+    this.nodeLabels?.forEach(({ el }) => el.remove());
+    try {
+      this.renderer?.dispose();
+      this.renderer?.domElement?.remove();
+    } catch (err) { /* ignore */ }
   }
 }
 
@@ -1793,11 +2524,16 @@ function updateDrawerRange(start, end, total) {
 }
 
 function posterHtml(video) {
-  const hue = hueFor(video.channelId || video.channel);
+  const hue = hueFor(video.channel || video.id);
   const isLive = video.type === 'live';
-  return `<div class="poster" style="--h:${hue}">
+  const hasDur = isLive || video.duration > 0;
+  const img = video.thumb
+    ? `<img src="${escapeHtml(video.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+    : '';
+  return `<div class="poster${video.thumb ? ' has-thumb' : ''}" style="--h:${hue}">
+    ${img}
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
-    <span class="dur">${isLive ? 'LIVE' : fmtDuration(video.duration)}</span>
+    ${hasDur ? `<span class="dur">${isLive ? 'LIVE' : fmtDuration(video.duration)}</span>` : ''}
   </div>`;
 }
 
@@ -1812,7 +2548,7 @@ function videoRow(video, index, mode) {
     ${posterHtml(video)}
     <div class="vbody">
       <div class="vtitle">${escapeHtml(video.title)}</div>
-      <div class="vmeta">${topicLine}<span class="ch">${escapeHtml(video.channel)}</span><span class="sep"></span><span>${fmtCompact(video.views)} views</span><span class="sep"></span><span>${relDate(video.published)}</span></div>
+      <div class="vmeta">${topicLine}<span class="ch">${escapeHtml(video.channel)}</span><span class="sep"></span>${video.views > 0 ? `<span>${fmtCompact(video.views)} views</span><span class="sep"></span>` : ''}<span>${relDate(video.published)}</span></div>
     </div>
     <div class="vactions">
       <button class="mini-btn${saved ? ' saved' : ''}" data-act="save" data-id="${escapeHtml(video.id)}" aria-label="${saved ? 'Remove bookmark' : 'Bookmark video'}" aria-pressed="${saved}" title="${saved ? 'Remove bookmark' : 'Bookmark'}">
@@ -1850,6 +2586,7 @@ async function openDrawer(mode, opts = {}) {
   d.savedOnly = false;
   els.drawer.classList.add('is-open');
   els.drawer.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('drawer-open');
   els.tooltip.classList.remove('is-on');
   els.scrim.classList.add('is-open');
   document.body.style.overflow = 'hidden';
@@ -1866,15 +2603,15 @@ async function openDrawer(mode, opts = {}) {
     els.drawerSort.value = 'newest';
     els.drawerSort.disabled = false;
     els.drawerSavedOnly.hidden = false;
-    els.drawerMeta.innerHTML = `<span class="n">${fmtNum(topic.count)} videos</span><span>loading shard…</span>`;
+    els.drawerMeta.innerHTML = `<span class="n">${fmtNum(topic.count)} videos</span><span>reading local topic…</span>`;
     els.drawerRange.textContent = '—';
     renderDrawerHead(topic, 'pending');
     els.vlistWindow.innerHTML = '';
     els.vlistSpacer.style.height = '0px';
     els.drawerScroll.scrollTop = 0;
     showSkeleton();
-    els.drawerFootLeft.textContent = 'Fetching shard';
-    els.drawerFootRight.textContent = topic.shard;
+    els.drawerFootLeft.textContent = 'Reading local topic';
+    els.drawerFootRight.textContent = 'on this Mac';
     els.drawerClose?.focus?.();
     try {
       const { shard, source, bytes, ms } = await getShard(topic);
@@ -1884,8 +2621,12 @@ async function openDrawer(mode, opts = {}) {
       renderDrawerHead(topic, source);
       applyDrawerFilters({ scrollToVideo: opts.focusId });
       pushRecent(topic.id);
-      els.drawerFootLeft.textContent = source === 'network' ? 'Fetched on demand' : source === 'cache' ? 'Restored from IndexedDB' : 'Shard in memory';
-      els.drawerFootRight.textContent = `${ms} ms · ${(bytes / 1024).toFixed(0)} KB`;
+      els.drawerFootLeft.textContent = source === 'local'
+        ? 'Local library · offline'
+        : source === 'network' ? 'Fetched on demand' : source === 'cache' ? 'Restored from IndexedDB' : 'Local topic';
+      els.drawerFootRight.textContent = source === 'local'
+        ? `${fmtNum(shard.videos.length)} videos · this Mac`
+        : `${ms} ms · ${(bytes / 1024).toFixed(0)} KB`;
       if (opts.focusId) scrollToFocus();
     } catch (err) {
       d.error = err;
@@ -1893,12 +2634,12 @@ async function openDrawer(mode, opts = {}) {
       d.items = [];
       renderDrawerHead(topic, 'error');
       els.vlistWindow.innerHTML = `<div class="error-card" style="margin:20px">
-        <h4>Could not load this shard</h4>
-        <p>${escapeHtml(err.message)}. The manifest and other topics still work.</p>
+        <h4>Could not read this topic</h4>
+        <p>${escapeHtml(err.message)}. Your other topics still work.</p>
         <button class="btn-primary" data-act="retry">Retry</button>
       </div>`;
       els.vlistSpacer.style.height = '0px';
-      els.drawerMeta.innerHTML = `<span class="n">Shard unavailable</span><span>—</span>`;
+      els.drawerMeta.innerHTML = `<span class="n">Topic unavailable</span><span>—</span>`;
       els.drawerFootLeft.textContent = 'Error';
       els.drawerFootRight.textContent = '—';
     }
@@ -1939,19 +2680,24 @@ function showSkeleton() {
 function renderDrawerHead(topic, source) {
   const d = state.drawer;
   if (d.mode === 'topic' && topic) {
-    const cat = state.categories.find((c) => c.id === topic.category) || { hue: 260, name: topic.categoryName };
+    const cat = state.categories.find((c) => c.id === topic.category) || { hue: topic.hue ?? 260, name: topic.categoryName };
     els.drawerEyebrow.innerHTML = `<span class="dot" style="background:hsl(${cat.hue} 72% 60%)"></span><span>${escapeHtml(cat.name || topic.categoryName)}</span>`;
     els.drawerTitle.textContent = topic.name;
     const badge = source === 'network'
       ? '<span class="badge net">fetched</span>'
-      : source === 'cache'
-        ? '<span class="badge cache">indexeddb</span>'
-        : source === 'memory'
-          ? '<span class="badge cache">in memory</span>'
-          : source === 'error'
-            ? '<span class="badge" style="color:var(--accent)">failed</span>'
-            : '<span class="badge">loading</span>';
-    els.drawerSub.innerHTML = `<span>${fmtNum(topic.count)} videos</span><span class="sep">·</span>${badge}<span class="sep sep-path">·</span><span class="drawer-path">${escapeHtml(topic.shard)}</span>`;
+      : source === 'local'
+        ? '<span class="badge cache">local</span>'
+        : source === 'cache'
+          ? '<span class="badge cache">indexeddb</span>'
+          : source === 'memory'
+            ? '<span class="badge cache">in memory</span>'
+            : source === 'error'
+              ? '<span class="badge" style="color:var(--accent)">failed</span>'
+              : '<span class="badge">loading</span>';
+    const tail = source === 'local'
+      ? '<span>on this Mac</span>'
+      : `<span class="sep sep-path">·</span><span class="drawer-path">${escapeHtml(topic.shard || '')}</span>`;
+    els.drawerSub.innerHTML = `<span>${fmtNum(topic.count)} videos</span><span class="sep">·</span>${badge}<span class="sep">·</span>${tail}`;
   } else if (d.mode === 'saved') {
     els.drawerEyebrow.innerHTML = `<span class="dot" style="background:var(--warn)"></span><span>Local collection</span>`;
     els.drawerTitle.textContent = 'Saved videos';
@@ -1960,7 +2706,7 @@ function renderDrawerHead(topic, source) {
   } else {
     els.drawerEyebrow.innerHTML = `<span class="dot" style="background:var(--accent-2)"></span><span>Full index</span>`;
     els.drawerTitle.textContent = 'All topics';
-    els.drawerSub.innerHTML = `<span>${fmtNum(state.topics.length)} topics</span><span class="sep">·</span><span>${fmtNum(state.manifest.totals.videos)} videos</span><span class="sep">·</span><span>no shard loaded</span>`;
+    els.drawerSub.innerHTML = `<span>${fmtNum(state.topics.length)} topics</span><span class="sep">·</span><span>${fmtNum(state.manifest.totals.videos)} videos</span><span class="sep">·</span><span>local topics only</span>`;
   }
 }
 
@@ -2033,7 +2779,7 @@ function applyDrawerFilters(opts = {}) {
     if (d.mode === 'saved') {
       empty = `<div class="empty"><div class="ring"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m12 3 2.7 5.7 6.3.9-4.6 4.4 1.1 6.2-5.5-3-5.5 3 1.1-6.2L3 9.6l6.3-.9L12 3Z"/></svg></div><h3>No saved videos yet</h3><p>Tap the star on any row. Saved videos live in localStorage and open without a network call.</p><button class="link" data-act="browse">Browse all topics</button></div>`;
     } else {
-      empty = `<div class="empty"><div class="ring"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></div><h3>No matches</h3><p>Try a shorter phrase, or clear the filter. Shard search covers titles and channels.</p><button class="link" data-act="clear-filter">Clear filter</button></div>`;
+      empty = `<div class="empty"><div class="ring"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></div><h3>No matches</h3><p>Try a shorter phrase, or clear the filter. Topic search covers titles and channels.</p><button class="link" data-act="clear-filter">Clear filter</button></div>`;
     }
     els.vlistWindow.innerHTML = empty;
     els.vlistSpacer.style.height = '0px';
@@ -2076,6 +2822,7 @@ function closeDrawer(opts = {}) {
   els.drawer.classList.remove('is-open');
   els.drawer.setAttribute('aria-hidden', 'true');
   els.scrim.classList.remove('is-open');
+  document.body.classList.remove('drawer-open');
   document.body.style.overflow = '';
   state.drawer.mode = null;
   state.drawer.focusId = null;
@@ -2173,7 +2920,6 @@ els.drawerScroll.addEventListener('click', (e) => {
     openDrawer('topic', { topicId: actionEl.dataset.topic });
   } else if (act === 'retry' && state.drawer.topic) {
     const topic = state.drawer.topic;
-    shardMemory.delete(topic.id);
     openDrawer('topic', { topicId: topic.id });
   } else if (act === 'clear-filter') {
     els.drawerSearch.value = '';
@@ -2234,66 +2980,53 @@ const runSearch = debounce(async (q) => {
   state.search.active = -1;
   state.search.loading = true;
 
-  const topics = searchTopics(query, 6).slice(0, 5);
-  state.search.topics = topics;
-  state.search.videos = [];
-  paintSearchPanel();
-
-  if (!state.videoIndex) {
-    state.search.loading = false;
-    paintSearchPanel();
-    return;
+  const topics = searchTopics(query, 5);
+  let videos = [];
+  if (state.personal.searchIndex) {
+    const byId = new Map(state.library.videos.map((v) => [v.id, v]));
+    videos = state.personal.searchIndex.search(query, { prefix: true, fuzzy: 0.15, limit: 200 })
+      .map((hit) => byId.get(hit.id)).filter(Boolean).slice(0, 10);
+  } else {
+    const needle = query.toLowerCase();
+    videos = state.library.videos.filter((v) =>
+      v.title.toLowerCase().includes(needle) ||
+      String(v.channel || '').toLowerCase().includes(needle) ||
+      String(v.topicName || '').toLowerCase().includes(needle)
+    ).slice(0, 10);
   }
-
-  let hits = [];
-  try {
-    hits = state.videoIndex.search(query, { prefix: true, fuzzy: 0.15, limit: 40 });
-  } catch (err) { hits = []; }
-
-  // Resolve the shard positions into real video records. Fetch at most four
-  // distinct shards so a single query stays cheap.
-  const groups = new Map();
-  for (const h of hits) {
-    if (!groups.has(h.k)) groups.set(h.k, []);
-    groups.get(h.k).push(h);
-  }
-  const selected = [...groups.entries()].slice(0, 4);
-  const resolved = [];
-  await Promise.all(selected.map(async ([k, list]) => {
-    const topic = state.topics[k];
-    if (!topic) return;
-    try {
-      const { shard } = await getShard(topic);
-      for (const h of list.slice(0, 4)) {
-        const v = shard.videos[h.n];
-        if (v) resolved.push({ video: v, topic, score: h.score });
-      }
-    } catch (err) { /* skip unavailable shard */ }
-  }));
-  resolved.sort((a, b) => b.score - a.score);
   if (seq !== state.search.seq) return;
-  state.search.videos = resolved.slice(0, 10);
+  state.search.topics = topics;
+  state.search.videos = videos.map((v) => ({
+    video: v,
+    topic: state.topicById.get(v.topicId) ||
+      state.personal.topics.find((t) => t.name === v.topicName) ||
+      { id: '', name: v.topicName || 'My library', category: 'library', categoryName: 'My library', count: 0 }
+  }));
   state.search.loading = false;
   paintSearchPanel();
 }, 190);
 
-const SUGGESTED = ['transformer_architecture', 'retrieval_augmented_generation', 'ai_agents', 'ai_product_strategy'];
-
 function paintIdlePanel() {
   if (!state.manifest) return;
   const recent = state.recent.map((id) => state.topicById.get(id)).filter(Boolean).slice(0, 4);
-  const list = recent.length ? recent : SUGGESTED.map((id) => state.topicById.get(id)).filter(Boolean);
-  const label = recent.length ? 'Recently opened' : 'Start here';
-  let html = `<div class="search-section"><div class="search-label"><span>${label}</span><span class="status">${list.length} topics</span></div>`;
-  for (const t of list) {
-    const cat = state.categories.find((c) => c.id === t.category);
-    html += `<button class="search-item" role="option" data-kind="topic" data-id="${escapeHtml(t.id)}">
-      <span class="avatar" style="--h:${cat ? cat.hue : 260}">${escapeHtml(t.name.slice(0, 2).toUpperCase())}</span>
-      <span class="grow"><span class="s-title" style="display:block">${escapeHtml(t.name)}</span><span class="s-meta">${escapeHtml(t.categoryName)} · ${fmtNum(t.count)} videos</span></span>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><path d="m9 6 6 6-6 6"/></svg>
-    </button>`;
+  const suggested = [...state.personal.topics].sort((a, b) => b.count - a.count).slice(0, 4);
+  const list = recent.length ? recent : suggested;
+  const label = recent.length ? 'Recently opened' : 'Your topics';
+  let html = '';
+  if (!state.library.videos.length) {
+    html = `<div class="search-section"><div class="search-empty">Your library is empty.<br>Add a link or import your watch history to start.</div></div>`;
+  } else {
+    html = `<div class="search-section"><div class="search-label"><span>${label}</span><span class="status">${list.length} topics</span></div>`;
+    for (const t of list) {
+      html += `<button class="search-item" role="option" data-kind="topic" data-id="${escapeHtml(t.id)}">
+        <span class="avatar" style="--h:${t.hue ?? 200}">${escapeHtml(t.name.slice(0, 2).toUpperCase())}</span>
+        <span class="grow"><span class="s-title" style="display:block">${escapeHtml(t.name)}</span><span class="s-meta">${fmtNum(t.count)} videos</span></span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><path d="m9 6 6 6-6 6"/></svg>
+      </button>`;
+    }
+    html += '</div>';
   }
-  html += `</div><div class="search-hint"><kbd class="inline">↵</kbd> open <span class="sep">·</span> <kbd class="inline">⌘K</kbd> search <span class="sep">·</span> <kbd class="inline">esc</kbd> close</div>`;
+  html += `<div class="search-hint"><kbd class="inline">↵</kbd> open <span class="sep">·</span> <kbd class="inline">⌘K</kbd> search <span class="sep">·</span> <kbd class="inline">esc</kbd> close</div>`;
   els.searchPanel.innerHTML = html;
   els.searchPanel.classList.add('is-open');
 }
@@ -2315,13 +3048,13 @@ function paintSearchPanel() {
       </button>`;
     }
   } else {
-    html += `<div class="search-empty">No topic matches. Try “agents”, “RAG” or “quantization”.</div>`;
+    html += `<div class="search-empty">No topic matches in your library.</div>`;
   }
   html += '</div>';
 
-  html += `<div class="search-section"><div class="search-label"><span>Video titles</span><span class="status">${state.videoIndexStatus === 'ready'
-    ? (state.search.loading ? 'resolving…' : `${state.search.videos.length} shown`)
-    : state.videoIndexStatus === 'loading' ? `indexing ${Math.round(state.videoIndexPct * 100)}%` : state.videoIndexStatus === 'error' ? 'unavailable' : 'warming up'}</span></div>`;
+  const indexing = state.personal.searchStatus === 'pending' && !state.personal.searchIndex;
+  const videoStatus = indexing ? 'indexing local library…' : `${state.search.videos.length} local`;
+  html += `<div class="search-section"><div class="search-label"><span>Video titles</span><span class="status">${videoStatus}</span></div>`;
   if (state.search.videos.length) {
     for (const { video, topic } of state.search.videos) {
       const cat = state.categories.find((c) => c.id === topic.category);
@@ -2330,12 +3063,10 @@ function paintSearchPanel() {
         <span class="grow"><span class="s-title" style="display:block">${escapeHtml(video.title)}</span><span class="s-meta">${escapeHtml(video.channel)} · ${escapeHtml(topic.name)}</span></span>
       </button>`;
     }
-  } else if (state.videoIndexStatus === 'ready' && !state.search.loading) {
-    html += `<div class="search-empty">No title matches in the 108k index.</div>`;
   } else {
-    html += `<div class="search-empty">${state.videoIndexStatus === 'loading'
-      ? `Warming the 12 MB title index… ${Math.round(state.videoIndexPct * 100)}%`
-      : 'The title index loads in the background after first paint.'}</div>`;
+    html += `<div class="search-empty">${state.library.videos.length
+      ? 'No title matches in your library.'
+      : 'Nothing to search yet. Add a link or import your history.'}</div>`;
   }
   html += '</div>';
   html += `<div class="search-hint"><kbd class="inline">↵</kbd> open first topic <span class="sep">·</span> <kbd class="inline">esc</kbd> close</div>`;
@@ -2458,12 +3189,8 @@ function paintCategoryChrome() {
 }
 
 function updateIndexStatus() {
-  const s = state.videoIndexStatus;
-  els.indexStatus.dataset.state = s;
-  if (s === 'loading') els.indexStatusText.textContent = `Indexing titles · ${Math.round(state.videoIndexPct * 100)}%`;
-  else if (s === 'ready') els.indexStatusText.textContent = `Titles ready · ${fmtCompact(state.manifest?.totals.videos || 108000)}`;
-  else if (s === 'error') els.indexStatusText.textContent = 'Title index unavailable';
-  else els.indexStatusText.textContent = 'Title index idle';
+  els.indexStatus.dataset.state = 'ready';
+  els.indexStatusText.textContent = `Local · ${fmtCompact(state.library.videos.length)} saved`;
 }
 
 /* hover tooltip */
@@ -2475,7 +3202,7 @@ function onHover(topic) {
   const cat = state.categories.find((c) => c.id === topic.category);
   els.tooltip.innerHTML = `<div class="t">${escapeHtml(topic.name)}</div>
     <div class="m"><span class="dot" style="background:hsl(${cat ? cat.hue : 260} 72% 60%)"></span>${escapeHtml(topic.categoryName)} · ${fmtNum(topic.count)} videos</div>
-    <div class="cta">Click to open shard</div>`;
+    <div class="cta">Click to open topic</div>`;
   const p = state.graph?.pointerScreen;
   if (p) {
     els.tooltip.style.left = `${p.x}px`;
@@ -2483,6 +3210,64 @@ function onHover(topic) {
   }
   els.tooltip.classList.add('is-on');
 }
+
+/* local library events */
+$('#libraryBtn').addEventListener('click', openLibrary);
+$('#libraryClose').addEventListener('click', closeLibrary);
+$('#libraryScrim').addEventListener('click', closeLibrary);
+$('#libraryAdd').addEventListener('click', addLibraryFromUrls);
+$('#libraryImport').addEventListener('click', () => document.getElementById('libraryFile').click());
+$('#libraryExport').addEventListener('click', exportLibrary);
+$('#libraryClear').addEventListener('click', async () => {
+  const n = state.library.videos.length;
+  if (!n) { libraryStatus('The library is already empty.', 'error'); return; }
+  if (!confirm(`Remove all ${n} videos from this browser? Export a backup first if you want to keep them.`)) return;
+  await clearLibraryData();
+  renderLibraryList();
+});
+document.getElementById('libraryFile').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (file) await importLibraryFile(file);
+});
+document.getElementById('libraryUrls').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); addLibraryFromUrls(); }
+});
+document.getElementById('libraryList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const video = state.library.videos.find((v) => v.id === btn.dataset.id);
+  if (!video) return;
+  if (btn.dataset.act === 'remove') {
+    if (!confirm(`Remove “${video.title}” from your library?`)) return;
+    state.library.videos = state.library.videos.filter((v) => v.id !== video.id);
+    await saveLibrary();
+    renderLibraryList();
+    buildPersonalDataset();
+    activateDataset(state.personal.manifest);
+  } else if (btn.dataset.act === 'edit') {
+    const title = prompt('Video title', video.title);
+    if (title === null) return;
+    const topic = prompt('Topic (used for the graph cluster)', video.topicName || 'Unsorted');
+    if (topic === null) return;
+    video.title = title.trim() || video.title;
+    video.topicName = topic.trim() || 'Unsorted';
+    await saveLibrary();
+    buildPersonalDataset();
+    activateDataset(state.personal.manifest);
+    renderLibraryList();
+    libraryStatus('Saved changes locally.', 'ok');
+  }
+});
+
+$('#emptyAdd').addEventListener('click', () => {
+  openLibrary();
+  setTimeout(() => document.getElementById('libraryUrls')?.focus(), 220);
+});
+$('#emptyImport').addEventListener('click', () => {
+  openLibrary();
+  setTimeout(() => document.getElementById('libraryFile')?.click(), 240);
+});
 
 /* header actions */
 $('#themeBtn').addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
@@ -2498,24 +3283,6 @@ $('#resetView').addEventListener('click', () => {
   paintCategoryChrome();
 });
 
-/* onboarding */
-function initOnboarding() {
-  const el = $('#onboard');
-  let dismissed = false;
-  try { dismissed = localStorage.getItem(ONBOARD_KEY) === '1'; } catch (err) { /* ignore */ }
-  if (dismissed) return;
-  el.hidden = false;
-  $('#onboardDismiss').addEventListener('click', () => {
-    el.hidden = true;
-    try { localStorage.setItem(ONBOARD_KEY, '1'); } catch (err) { /* ignore */ }
-  });
-  $('#onboardStart').addEventListener('click', () => {
-    el.hidden = true;
-    try { localStorage.setItem(ONBOARD_KEY, '1'); } catch (err) { /* ignore */ }
-    openDrawer('topic', { topicId: 'transformer_architecture' });
-  });
-}
-
 /* keyboard */
 window.addEventListener('keydown', (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
@@ -2527,7 +3294,9 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
     els.search.focus();
   } else if (e.key === 'Escape') {
-    if (els.searchPanel.classList.contains('is-open')) closeSearch();
+    const libOpen = document.getElementById('libraryPanel')?.classList.contains('is-open');
+    if (libOpen) closeLibrary();
+    else if (els.searchPanel.classList.contains('is-open')) closeSearch();
     else if (els.drawer.classList.contains('is-open')) closeDrawer();
   }
 });
@@ -2570,68 +3339,13 @@ async function init() {
   loadStore();
   setTheme(state.theme, false);
   updateSavedCount();
-  bootProgress(8, 'Fetching manifest');
+  bootProgress(18, 'Reading local library');
 
-  const manifest = await fetchJSON('data/manifest.json');
-  state.manifest = manifest;
-  state.topics = manifest.topics;
-  state.topicById = new Map(manifest.topics.map((t) => [t.id, t]));
-  state.categories = manifest.categories;
-  bootProgress(38, 'Loading search index');
+  await loadLibrary();
+  buildPersonalDataset();
 
-  try {
-    const idxRaw = await fetch('data/search_index.json').then((r) => {
-      if (!r.ok) throw new Error(`search index → HTTP ${r.status}`);
-      return r.text();
-    });
-    state.topicIndex = window.MiniSearch
-      ? window.MiniSearch.loadJSON(idxRaw, {
-          fields: ['name', 'categoryName'],
-          storeFields: ['type', 'name', 'category', 'categoryName', 'count', 'slug'],
-          idField: 'id'
-        })
-      : null;
-  } catch (err) {
-    console.warn('Keyword index unavailable — falling back to substring search', err);
-    state.topicIndex = null;
-  }
-
-  bootProgress(62, 'Building 3D scene');
-  $('#brandVideos').textContent = `${fmtCompact(manifest.totals.videos)} videos`;
-  $('#brandTopics').textContent = `${fmtNum(manifest.totals.topics)} topics`;
-  $('#brandCategories').textContent = `${manifest.totals.categories} disciplines`;
-  $('#statVideos').textContent = fmtCompact(manifest.totals.videos);
-  $('#statTopics').textContent = fmtNum(manifest.totals.topics);
-  $('#statEdges').textContent = fmtNum(manifest.edges.length);
-  document.title = `YouTube Second Brain 100k — ${fmtNum(manifest.totals.videos)} videos in 3D`;
-
-  if (!state.topicIndex) {
-    // simple fallback index so search still works without the CDN MiniSearch
-    const docs = manifest.topics.map((t) => ({ ...t, type: 'topic' }));
-    state.topicIndex = {
-      search: (q, opts = {}) => fallbackSearch(docs, q, opts.limit || 8).map((d) => ({ ...d, type: 'topic' }))
-    };
-  }
-
-  paintCategoryChrome();
-  initOnboarding();
-  updateIndexStatus();
-
-  try {
-    state.graph = new KnowledgeGraph($('#canvasHost'), manifest, {
-      onHover,
-      onOpen: (id) => openDrawer('topic', { topicId: id }),
-      getCategory: () => state.category,
-      getSelected: () => (state.drawer.mode === 'topic' ? state.drawer.topic?.id : null),
-      onCategory: (id) => setCategory(state.category === id ? 'all' : id),
-      onResetCategory: () => { state.category = 'all'; paintCategoryChrome(); },
-      onFps: (fps) => { const el = $('#statFps'); if (el) el.textContent = String(fps); }
-    });
-  } catch (err) {
-    console.warn('WebGL unavailable', err);
-    $('#graphFallback').classList.add('is-on');
-    $('#canvasHost').style.display = 'none';
-  }
+  bootProgress(62, 'Laying out your library');
+  activateDataset(state.personal.manifest, { initial: true });
 
   state.ready = true;
   window.__YTB_READY_AT = performance.now();
@@ -2642,12 +3356,6 @@ async function init() {
   }, 260);
 
   routeFromHash();
-
-  const startIndex = () => loadVideoIndex().then(() => {
-    if (state.search.q) runSearch(state.search.q);
-  });
-  if ('requestIdleCallback' in window) requestIdleCallback(startIndex, { timeout: 2200 });
-  else setTimeout(startIndex, 1400);
 }
 
 /* test + debug surface */
@@ -2663,7 +3371,17 @@ window.__YTB = {
   setTheme,
   resetView: () => { state.category = 'all'; state.graph?.resetView(); state.graph?.setNodeVisual(); paintCategoryChrome(); },
   search: (q) => { els.search.value = q; runSearch(q); },
-  loadVideoIndex,
+  openLibrary,
+  closeLibrary,
+  libraryImportRecords: mergeLibraryForTest,
+  importTakeout: importTakeoutEntries,
+  resetLibrary: clearLibraryData,
+  libraryInfo: () => ({
+    mode: state.mode,
+    videos: state.library.videos.length,
+    topics: state.personal.topics.length,
+    open: document.getElementById('libraryPanel')?.classList.contains('is-open') || false
+  }),
   drawerInfo: () => ({
     mode: state.drawer.mode,
     items: state.drawer.items.length,
@@ -2676,8 +3394,8 @@ window.__YTB = {
     topics: (state.search.topics || []).length,
     videos: state.search.videos.length,
     open: els.searchPanel.classList.contains('is-open'),
-    index: state.videoIndexStatus,
-    pct: state.videoIndexPct
+    index: 'local',
+    pct: 0
   }),
   stats: () => ({
     videos: state.manifest?.totals.videos,
@@ -2687,11 +3405,10 @@ window.__YTB = {
     webgl: !!state.graph
   }),
   clearCaches: async () => {
-    shardMemory.clear();
     try { localStorage.removeItem(STORE_KEY); } catch (err) { /* ignore */ }
     const idb = await db();
     if (idb) {
-      for (const s of ['shards', 'assets']) {
+      for (const s of ['shards', 'assets', 'library']) {
         try { idb.transaction(s, 'readwrite').objectStore(s).clear(); } catch (err) { /* ignore */ }
       }
     }

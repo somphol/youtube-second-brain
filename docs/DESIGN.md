@@ -2,9 +2,12 @@
 
 ## Intent
 
-A "second brain" should feel like a place, not a spreadsheet. The graph is the primary navigation: twelve colour-coded disciplines, each a constellation of topics sized by how much material exists. Everything else — search, filters, drawer — is an instrument for getting to a specific video without losing that spatial sense.
+A private shelf, not a feed. The app starts empty and asks for one deliberate action: add a link or
+import history. From there it becomes a spatial index of your own topics. No recommendations, no
+autoplay, no engagement mechanics.
 
-The interface is deliberately quiet: near-black stage, thin borders, one warm accent, and colour reserved for data (category hues). Chrome recedes; the graph carries the identity.
+The interface stays quiet: near-black stage, thin borders, one accent. Colour is data (topic hues).
+Everything else is chrome that disappears when you read.
 
 ## Visual system
 
@@ -16,78 +19,83 @@ The interface is deliberately quiet: near-black stage, thin borders, one warm ac
 | `--accent` | `#ff3d63` | `#e11d48` |
 | `--accent-2` | `#8b5cff` | `#6338f0` |
 
-- **Type**: system sans (Inter → SF Pro → Segoe → system-ui) for UI; system mono for counts, durations, badges and status. No web fonts, no font flash.
-- **Radii**: 8/14/22 px; pills for filters, 9–12 px for controls.
-- **Depth**: a single border + translucent panel + backdrop blur. No heavy drop shadows except the drawer and search overlay.
-- **Motion**: one easing curve `cubic-bezier(.22,.8,.26,1)`, 120–420 ms. Auto-rotation and pulses stop under `prefers-reduced-motion`.
-- **Category hues**: architecture 265, training 205, inference 160, RAG 30, agents 320, multimodal 190, media 345, MLOps 15, data 85, eval 45, product 285, research 235.
+- System sans (Inter → SF Pro → Segoe → system-ui), system mono for counts and status.
+- No web fonts, no stock images. Posters are procedural; own thumbnails are stored data URLs.
+- Radii 8/14/22 px; one easing curve; motion stops under `prefers-reduced-motion`.
+- Topic hues are golden-angle spaced at build time, so clusters stay distinguishable.
 
-## Layout
+## Screens
+
+**Empty stage** — centered card: “Start with your own videos”, two actions (Add videos / Import
+history), and a one-line privacy note. The graph is not rendered; there is nothing to orbit.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│ brand      search (centered)        browse saved theme   │ 76 px
+│ brand      search                library browse saved theme│
 ├──────────────────────────────────────────────────────────┤
-│ All · 12 discipline chips          title-index status    │ 52 px
+│ All                                                      │
 ├──────────────────────────────────────────────────────────┤
-│ HUD title                         ┌──────── drawer ────┐ │
-│ stats                             │ header             │ │
-│                                   │ toolbar            │ │
-│           3D graph                │ virtual list       │ │
-│                                   │ footer             │ │
-│ legend        hint        zoom    └────────────────────┘ │
+│                     ┌──────────────────┐                 │
+│                     │   empty card      │                 │
+│                     │  Add / Import     │                 │
+│                     └──────────────────┘                 │
 └──────────────────────────────────────────────────────────┘
 ```
 
-The drawer is a fixed 560 px overlay with a scrim; on ≤ 560 px it becomes a full-screen sheet. The canvas remains mounted underneath, so closing restores the camera exactly.
+**Graph** — topic spheres with labels above them; the drawer pushes the stage left instead of covering
+it on desktop, so the selected cluster stays visible.
 
-## Interaction map
+**Library panel** — centered sheet (full-screen under 560 px): URL textarea, topic field, add button,
+grouping select for Takeout, import/export/clear, and a list of the latest 100 records. The privacy
+note is at the top, not buried.
+
+**Drawer** — topic title, count, `LOCAL` badge, filter, sort, saved-only, virtualized rows, footer
+“Local library · offline”. Saved and all-topics modes reuse the same shell.
+
+## Interaction
 
 | Action | Result |
 | --- | --- |
-| Drag | Orbit camera (damped) |
-| Wheel / pinch | Zoom 9–42 world units |
-| Click node / category label | Open topic / focus category |
-| Double-click stage, reset button | Reset camera + filter |
-| `/` or `⌘K` | Focus global search |
-| `↑` / `↓` / `Enter` in search | Move through results / open |
-| `Esc` | Close search, then drawer |
-| Star | Bookmark (localStorage) |
-| Saved icon | Open saved drawer |
-| Browse icon | Open all 480 topics as a list |
-| Theme icon | Toggle dark/light, persisted |
+| Click a node or its label | Open the topic drawer |
+| Drag / wheel / pinch | Orbit / zoom |
+| Double-click stage | Reset view |
+| `/` or `⌘K` | Focus search |
+| `Esc` | Close library → search → drawer |
+| Library icon | Add / import / export |
+| Star | Bookmark in localStorage |
+| Browse icon | All topics as a list (works without WebGL) |
+| Theme icon | Dark/light, persisted |
 
-## Drawer anatomy
+## Empty and error states
 
-- **Header**: category eyebrow with hue dot, topic title, count, shard-source badge, path (hidden on small screens), close.
-- **Toolbar**: filter field, sort select, saved-only toggle. On mobile it becomes a 2-column grid with the search full width.
-- **Meta row**: result count and visible range (`1–10 of 4,604`).
-- **Rows**: index, procedural poster with duration or LIVE, two-line title, channel · views · age, star, external link. Saved rows add the parent topic as a link.
-- **Footer**: load provenance (`Fetched on demand`, `Restored from IndexedDB`, `Shard in memory`), elapsed time, size.
-
-The rows are the only place with colour beyond the category system: the poster hue is hashed from the channel id, giving each channel a stable identity without images.
+- Empty library: actionable card, no fake suggestions.
+- No search matches: names the scope (“your library”) and suggests adding records.
+- Import failure: inline status with the reason; nothing is written.
+- Metadata failure: record still saved by URL; the status says how many lacked metadata.
+- WebGL failure: fallback panel; the list and search remain.
 
 ## Accessibility
 
-- Skip link to the graph.
-- The graph has `role="img"` and an accessible name; the same 480 topics are reachable through **Browse** without WebGL.
-- Search is a labelled input; results are `role="option"` buttons, keyboard-navigable.
-- The drawer is a labelled `role="dialog"` with `aria-modal`, focus moved to close, a Tab focus trap, and focus restored to the opener.
-- All icon-only controls have `aria-label`; saved toggles expose `aria-pressed`; live regions announce toasts and search status.
-- Colour is never the only signal: active chips have border + background, saved stars fill, the current row has a left bar.
-- Contrast: body text ≥ 7:1 in both themes; muted text ≥ 4.5:1. Focus rings use a 2 px accent outline with offset.
-- Motion respects `prefers-reduced-motion`; auto-rotation stops.
+- Skip link; labelled search; `role="option"` results; labelled dialog for the library and drawer.
+- Focus moves into the library/drawer, Tab cycles, Esc closes, focus returns to the opener.
+- Icon buttons have `aria-label`; saved toggles expose `aria-pressed`; status/toast regions are live.
+- Colour is never the only signal: saved stars fill, active chips have background + border, the focused
+  row has a left bar.
+- Contrast ≥ 7:1 for body text, ≥ 4.5:1 for muted; visible 2 px focus rings.
+- Reduced motion disables rotation and pulses.
 
-## Responsive rules
+## Responsive
 
 | Breakpoint | Change |
 | --- | --- |
-| ≤ 1080 px | Hide brand subtitle and hint pill; narrower legend |
-| ≤ 860 px | Static search wrap, legend hidden, 68 px header, 88 px rows, camera further back |
-| ≤ 560 px | Two-row header, full-width search, index status hidden, 2-col drawer toolbar, path hidden, full-screen drawer |
+| ≤ 1080 px | Brand subtitle and hint pill hidden; narrower legend |
+| ≤ 860 px | Legend hidden; 68 px header; 88 px rows; static search row |
+| ≤ 560 px | Two-row header; full-width search; 2-column library controls; full-screen library/drawer; index status hidden |
 
-The mobile camera starts at 33 world units instead of 24 so the whole constellation fits a portrait viewport; pinch and zoom remain available.
+Mobile camera starts further back for the personal ring/sphere and pinch zoom remains available.
 
-## Copy and tone
+## Copy
 
-Direct, technical, no hype. "Pre-computed coordinates. Shards fetched on demand. Nothing simulated in the browser except the orbit." The synthetic-data disclaimer appears in onboarding and the README rather than being hidden in a tooltip.
+Direct, technical, private-by-default. “No account. No cookies. No upload.” appears once on the empty
+card and once in the library panel. The app never claims to have fetched your history; it asks for a
+Takeout file and explains why.

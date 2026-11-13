@@ -1,7 +1,7 @@
 {
-  "name": "YouTube Second Brain 100k",
+  "name": "Second Brain",
   "short_name": "Second Brain",
-  "description": "A 3D knowledge graph over 108,000 YouTube-style videos across 480 topics.",
+  "description": "A private, local-first 3D map of your own YouTube library.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

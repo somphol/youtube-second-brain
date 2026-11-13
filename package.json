@@ -1,18 +1,18 @@
 {
-  "name": "youtube-second-brain-100k",
-  "version": "1.0.0",
+  "name": "second-brain",
+  "version": "2.0.0",
   "private": true,
-  "description": "A static, sharded 3D knowledge graph over 108,000 YouTube-style video records.",
+  "description": "A private, local-first 3D map of your YouTube library. Import links or Google Takeout history; built for 100,000 videos.",
   "type": "module",
   "scripts": {
-    "build:data": "node scripts/build-data.mjs",
+    "local": "node scripts/serve.mjs --open",
     "serve": "node scripts/serve.mjs",
     "verify": "node scripts/verify.mjs",
-    "verify:data": "node scripts/verify-data.mjs",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/verify.mjs --shots",
+    "benchmark:build": "node scripts/build-benchmark.mjs",
+    "benchmark:verify": "node scripts/verify-benchmark.mjs"
   },
   "devDependencies": {
-    "minisearch": "7.2.0",
     "puppeteer-core": "^24.0.0"
   },
   "engines": {

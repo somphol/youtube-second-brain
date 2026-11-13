@@ -6,53 +6,54 @@
 git clone https://github.com/somphol/youtube-second-brain.git
 cd youtube-second-brain
 npm install
-npm run serve          # http://localhost:9000
+npm run local        # http://127.0.0.1:9000
 ```
 
-Node 20+ and Chrome are required for the gates. The deployed app has no runtime dependencies.
+Node 20+ and Chrome are required for the gate. The deployed app has no runtime npm dependency.
 
-## Before opening a pull request
+## Before a pull request
 
 ```sh
-npm run verify:data
 npm run verify
+npm run benchmark:build && npm run benchmark:verify   # only if you touch import/capacity
 ```
 
-Both must pass. If you change visible behaviour, regenerate screenshots:
+If you change visible behaviour, regenerate screenshots:
 
 ```sh
-npm run verify -- --shots
+npm run screenshots
 ```
 
 ## Editing the app
 
-`index.html` is intentionally one file. Keep it that way:
+`index.html` is one file by design. Keep it that way.
 
-- CSS lives in the single `<style>` block, tokens first, then layout, then components, then responsive rules.
-- The runtime is one inline `<script type="module">`. Add code inside the matching numbered section rather than creating a second module.
-- Do not add a bundler, framework or runtime npm package.
-- Do not fetch a shard or the title index during boot.
+- CSS lives in the single `<style>` block: tokens → layout → components → responsive.
+- The runtime is one inline `<script type="module">`; add code inside the matching numbered section.
+- No bundler, framework or runtime package.
+- No seeded library, sample records or automatic dataset fetch. The empty state is the product.
+- Do not add Google authentication, cookie import or scraping. Takeout JSON is the history path.
+- Keep `/api/oembed` narrow (validated id, fixed hosts, no arbitrary URL proxy).
+- Escape every data-derived string before HTML interpolation.
+- Keep the virtual list at ≤ 20 rendered rows.
 
-## Editing the corpus
+## Editing the capacity fixture
 
-`scripts/taxonomy.mjs` is the editorial source. Changing a keyword changes its id, shard filename, URL and every bookmark pointing at it. Treat ids as permanent once published. After any taxonomy or generator change:
+`scripts/taxonomy.mjs` feeds only the optional benchmark generator. It does not ship. After changing it:
 
 ```sh
-npm run build:data
-npm run verify:data
-npm run verify
+npm run benchmark:build
+npm run benchmark:verify
 ```
 
-Commit `data/` in the same change; the app and corpus ship together.
+Never commit `benchmark/`.
 
 ## Style
 
-- Vanilla ES2022, two-space indentation, single quotes, semicolons.
-- Escape any user- or data-derived string inserted as HTML (`escapeHtml`).
-- Prefer `textContent` for new UI unless markup is genuinely needed.
-- Keep the row count in the virtual list bounded.
-- Respect `prefers-reduced-motion`.
+Vanilla ES2022, two-space indentation, single quotes, semicolons. Prefer `textContent` for new UI unless
+markup is needed. Respect `prefers-reduced-motion`.
 
 ## Reporting bugs
 
-Include: browser and version, viewport size, the topic id or hash, what you expected, what happened, and whether the drawer header said `fetched`, `indexeddb` or `in memory`. Console output helps. Do not attach personal bookmarks.
+Include browser/version, viewport, whether the app is local or hosted, the topic, expected vs. actual,
+and whether metadata was available. Do not attach your library export or personal watch history.
