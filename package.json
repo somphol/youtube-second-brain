@@ -1,0 +1,21 @@
+{
+  "name": "youtube-second-brain-100k",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A static, sharded 3D knowledge graph over 108,000 YouTube-style video records.",
+  "type": "module",
+  "scripts": {
+    "build:data": "node scripts/build-data.mjs",
+    "serve": "node scripts/serve.mjs",
+    "verify": "node scripts/verify.mjs",
+    "verify:data": "node scripts/verify-data.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "devDependencies": {
+    "minisearch": "7.2.0",
+    "puppeteer-core": "^24.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

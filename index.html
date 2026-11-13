@@ -1,0 +1,2705 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YouTube Second Brain 100k — a 3D map of 108,000 videos</title>
+<meta name="description" content="Explore 108,000 YouTube-style videos across 480 topics on a pre-computed 3D knowledge graph. Sharded data, virtualized lists, instant search, bookmarks — all static.">
+<meta name="theme-color" content="#06070b">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://somphol.github.io/youtube-second-brain/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="YouTube Second Brain 100k">
+<meta property="og:description" content="A 3D knowledge network over 108,000 videos. Sharded on demand. Searchable offline-first.">
+<meta property="og:url" content="https://somphol.github.io/youtube-second-brain/">
+<meta property="og:image" content="https://somphol.github.io/youtube-second-brain/screenshots/og-cover.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="YouTube Second Brain 100k">
+<meta name="twitter:description" content="108,000 videos, 480 topics, one static page.">
+<meta name="twitter:image" content="https://somphol.github.io/youtube-second-brain/screenshots/og-cover.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090a10'/%3E%3Ccircle cx='17' cy='20' r='5' fill='%23ff3d63'/%3E%3Ccircle cx='46' cy='17' r='3.5' fill='%238b5cff'/%3E%3Ccircle cx='30' cy='45' r='7' fill='%2338d39f'/%3E%3Ccircle cx='50' cy='41' r='4' fill='%23ffb454'/%3E%3Cpath d='M21 22l10 17M44 20l-10 20M36 42h10' stroke='%23ffffff' stroke-opacity='.4' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  // Tailwind is loaded for utility classes in the shell. The design system itself
+  // lives in the hand-written CSS below so the app still looks right without it.
+  if (window.tailwind) {
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { sans: ['Inter', 'SF Pro Text', 'system-ui', 'sans-serif'] } } }
+    };
+  }
+</script>
+<style>
+/* ==========================================================================
+   1. DESIGN TOKENS
+   ========================================================================== */
+:root {
+  --font-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --ease: cubic-bezier(.22,.8,.26,1);
+  --row-h: 92px;
+  --header-h: 76px;
+  --filter-h: 52px;
+  --drawer-w: 560px;
+  --z-drawer: 60;
+  --z-scrim: 50;
+  --z-search: 70;
+  --z-toast: 90;
+  --z-boot: 100;
+}
+html[data-theme="dark"] {
+  --bg: #06070b;
+  --bg-2: #090b12;
+  --elev: #0d1019;
+  --panel: rgba(12, 14, 22, .78);
+  --panel-solid: #0e111b;
+  --panel-hover: rgba(255, 255, 255, .045);
+  --line: rgba(255, 255, 255, .075);
+  --line-strong: rgba(255, 255, 255, .14);
+  --text: #f3f4f9;
+  --muted: #9aa0b5;
+  --faint: #6a7085;
+  --accent: #ff3d63;
+  --accent-2: #8b5cff;
+  --good: #38d39f;
+  --warn: #ffb454;
+  --shadow: 0 24px 70px -20px rgba(0, 0, 0, .8);
+  --glow: rgba(139, 92, 255, .16);
+  --grid: rgba(255, 255, 255, .035);
+  --scrim: rgba(4, 5, 9, .62);
+  --grad-a: #ff3d63; --grad-b: #8b5cff; --grad-c: #38d39f;
+  --stage-a: #0a0714;
+  --stage-b: #06070b;
+  --stage-c: #0b1020;
+}
+html[data-theme="light"] {
+  --bg: #f3f4f9;
+  --bg-2: #eceef6;
+  --elev: #ffffff;
+  --panel: rgba(255, 255, 255, .84);
+  --panel-solid: #ffffff;
+  --panel-hover: rgba(12, 16, 40, .035);
+  --line: rgba(12, 16, 40, .09);
+  --line-strong: rgba(12, 16, 40, .16);
+  --text: #0f1222;
+  --muted: #565d73;
+  --faint: #7d8399;
+  --accent: #e11d48;
+  --accent-2: #6338f0;
+  --good: #0e9f6e;
+  --warn: #b7791f;
+  --shadow: 0 24px 60px -24px rgba(25, 30, 60, .22);
+  --glow: rgba(99, 56, 240, .12);
+  --grid: rgba(12, 16, 40, .045);
+  --scrim: rgba(18, 20, 35, .28);
+  --grad-a: #d61b45; --grad-b: #4c2bd6; --grad-c: #0a8f63;
+  --stage-a: #eef0fa;
+  --stage-b: #f5f6fb;
+  --stage-c: #e9edf9;
+}
+
+/* ==========================================================================
+   2. BASE
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--line-strong) transparent; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+[hidden] { display: none !important; }
+a { color: inherit; }
+svg { display: block; }
+::selection { background: color-mix(in srgb, var(--accent) 34%, transparent); }
+:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent-2) 80%, white); outline-offset: 2px; border-radius: 6px; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 30%, transparent); background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+.skip-link {
+  position: fixed; left: 12px; top: -60px; z-index: 200;
+  background: var(--accent); color: #fff; padding: 10px 16px; border-radius: 10px;
+  font-weight: 600; text-decoration: none; transition: top .18s var(--ease);
+}
+.skip-link:focus { top: 12px; }
+
+.shell {
+  height: 100dvh;
+  display: flex; flex-direction: column;
+  opacity: 0; transition: opacity .5s var(--ease);
+}
+.shell.is-ready { opacity: 1; }
+
+/* ==========================================================================
+   3. HEADER
+   ========================================================================== */
+.topbar {
+  height: var(--header-h);
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 22px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  position: relative; z-index: 30;
+}
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-mark {
+  width: 40px; height: 40px; border-radius: 12px; flex: 0 0 auto;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 61, 99, .95), transparent 42%),
+    radial-gradient(circle at 72% 30%, rgba(139, 92, 255, .9), transparent 45%),
+    radial-gradient(circle at 50% 76%, rgba(56, 211, 159, .9), transparent 46%),
+    #10121c;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), 0 8px 26px -10px var(--accent-2);
+  position: relative;
+}
+.brand-mark::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background-image: linear-gradient(rgba(255,255,255,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.14) 1px, transparent 1px);
+  background-size: 9px 9px; opacity: .35; mask-image: radial-gradient(circle, black 30%, transparent 78%);
+}
+.brand-text { min-width: 0; }
+.brand-title {
+  margin: 0; font-size: 15.5px; font-weight: 700; letter-spacing: -.02em;
+  white-space: nowrap; display: flex; align-items: center; gap: 8px;
+}
+.brand-badge {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .06em;
+  padding: 2px 6px; border-radius: 5px; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.brand-sub {
+  display: flex; gap: 7px; align-items: center;
+  font-size: 11px; color: var(--muted); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.brand-sub .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); }
+
+/* search */
+.search-wrap { position: relative; flex: 1 1 420px; max-width: 560px; margin: 0 auto; }
+.search-box {
+  display: flex; align-items: center; gap: 10px; height: 42px;
+  padding: 0 12px;
+  border-radius: 12px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-solid) 62%, transparent);
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.search-box:focus-within {
+  border-color: color-mix(in srgb, var(--accent-2) 58%, transparent);
+  box-shadow: 0 0 0 4px var(--glow);
+  background: var(--panel-solid);
+}
+.search-box svg { color: var(--faint); flex: 0 0 auto; }
+.search-box input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+  font-size: 13.5px; letter-spacing: -.005em;
+}
+.search-box input::placeholder { color: var(--faint); }
+.search-kbd {
+  display: flex; gap: 4px; align-items: center;
+  font-family: var(--font-mono); font-size: 10px; color: var(--faint);
+  border: 1px solid var(--line); padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+}
+.search-clear { color: var(--faint); display: none; padding: 2px; border-radius: 5px; }
+.search-clear:hover { color: var(--text); background: var(--panel-hover); }
+.search-wrap.has-value .search-clear { display: block; }
+.search-wrap.has-value .search-kbd { display: none; }
+
+.search-panel {
+  position: absolute; top: calc(100% + 10px); left: 0; right: 0;
+  max-height: min(66vh, 580px); overflow: auto; padding: 8px;
+  background: var(--panel-solid); border: 1px solid var(--line-strong);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  z-index: var(--z-search); opacity: 0; transform: translateY(-6px) scale(.99);
+  pointer-events: none; transition: opacity .16s var(--ease), transform .16s var(--ease);
+}
+.search-panel.is-open { opacity: 1; transform: none; pointer-events: auto; }
+.search-section { padding: 6px 0; }
+.search-section + .search-section { border-top: 1px solid var(--line); margin-top: 4px; }
+.search-label {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--faint); padding: 6px 10px;
+}
+.search-label .status { text-transform: none; letter-spacing: 0; font-size: 10px; color: var(--muted); }
+.search-item {
+  width: 100%; display: flex; align-items: center; gap: 11px;
+  padding: 9px 10px; border-radius: 9px; text-align: left;
+  transition: background .14s;
+}
+.search-item:hover, .search-item.is-active { background: var(--panel-hover); }
+.search-item .avatar {
+  width: 32px; height: 32px; border-radius: 8px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: #fff;
+  background: hsl(var(--h, 260) 62% 48%);
+}
+.search-item .s-title { font-size: 13px; font-weight: 550; letter-spacing: -.01em; }
+.search-item .s-meta { font-size: 11px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
+.search-item .grow { min-width: 0; flex: 1; }
+.search-item .s-title, .search-item .s-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-empty { padding: 18px 12px; color: var(--muted); font-size: 12.5px; text-align: center; }
+.search-hint { padding: 8px 10px 10px; color: var(--faint); font-size: 11px; display: flex; gap: 6px; flex-wrap: wrap; }
+kbd.inline { font-family: var(--font-mono); font-size: 10px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; }
+
+/* header actions */
+.header-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: 0 0 auto; }
+.icon-btn {
+  height: 38px; min-width: 38px; padding: 0 10px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border-radius: 10px; border: 1px solid transparent;
+  color: var(--muted); font-size: 12px; font-weight: 550;
+  transition: background .16s, color .16s, border-color .16s;
+}
+.icon-btn:hover { background: var(--panel-hover); color: var(--text); border-color: var(--line); }
+.icon-btn.is-on { color: var(--text); border-color: var(--line); background: var(--panel-hover); }
+.icon-btn .count {
+  font-family: var(--font-mono); font-size: 10px; min-width: 17px; height: 17px;
+  display: grid; place-items: center; padding: 0 4px; border-radius: 99px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.icon-btn:disabled { opacity: .45; cursor: default; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ==========================================================================
+   4. FILTER BAR
+   ========================================================================== */
+.filterbar {
+  flex: 0 0 auto; height: var(--filter-h);
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 74%, transparent);
+  position: relative; z-index: 20;
+}
+.filter-scroll {
+  display: flex; align-items: center; gap: 6px; overflow-x: auto; min-width: 0;
+  scrollbar-width: none; -ms-overflow-style: none; padding: 4px 0;
+}
+.filter-scroll::-webkit-scrollbar { display: none; }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px; height: 30px;
+  padding: 0 11px; border-radius: 99px; border: 1px solid var(--line);
+  color: var(--muted); font-size: 11.5px; font-weight: 520; white-space: nowrap;
+  transition: color .16s, border-color .16s, background .16s;
+}
+.chip:hover { color: var(--text); border-color: var(--line-strong); }
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--h, 260) 70% 60%); box-shadow: 0 0 8px hsl(var(--h, 260) 80% 60% / .7); }
+.chip .n { font-family: var(--font-mono); font-size: 9.5px; color: var(--faint); }
+.chip.is-active { color: var(--text); border-color: color-mix(in srgb, var(--accent-2) 52%, transparent); background: color-mix(in srgb, var(--accent-2) 13%, transparent); }
+.chip.is-active .n { color: var(--text); }
+.chip.reset { border-style: dashed; }
+.filter-spacer { flex: 1; }
+.index-status {
+  flex: 0 0 auto; margin-left: auto;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .04em;
+  color: var(--faint); white-space: nowrap;
+}
+.index-status .led { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); transition: background .3s, box-shadow .3s; }
+.index-status[data-state="loading"] .led { background: var(--warn); box-shadow: 0 0 8px var(--warn); animation: pulse 1.2s infinite; }
+.index-status[data-state="ready"] .led { background: var(--good); box-shadow: 0 0 8px var(--good); }
+.index-status[data-state="error"] .led { background: var(--accent); }
+
+/* ==========================================================================
+   5. STAGE / 3D
+   ========================================================================== */
+.stage {
+  position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden;
+  background:
+    radial-gradient(1100px 720px at 44% 38%, var(--stage-a) 0%, transparent 62%),
+    radial-gradient(900px 600px at 76% 68%, var(--stage-c) 0%, transparent 68%),
+    var(--stage-b);
+  isolation: isolate;
+}
+.stage::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 78% at 50% 50%, #000 10%, transparent 72%);
+}
+#canvasHost { position: absolute; inset: 0; z-index: 1; touch-action: none; cursor: grab; }
+#canvasHost.is-dragging { cursor: grabbing; }
+#canvasHost canvas { display: block; width: 100%; height: 100%; }
+.stage::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(ellipse 90% 80% at 50% 46%, transparent 42%, color-mix(in srgb, var(--bg) 88%, transparent) 100%);
+}
+.labels { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.cat-label {
+  position: absolute; left: 0; top: 0; will-change: transform, opacity;
+  display: flex; align-items: center; gap: 6px; padding: 3px 8px;
+  border-radius: 99px; border: 1px solid transparent;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--text) 74%, transparent);
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  white-space: nowrap; pointer-events: auto; cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+  transform: translate3d(-999px, -999px, 0);
+}
+.cat-label:hover { color: var(--text); border-color: var(--line-strong); background: var(--panel-solid); }
+.cat-label .dot { width: 5px; height: 5px; border-radius: 50%; background: hsl(var(--h, 260) 72% 62%); box-shadow: 0 0 8px hsl(var(--h, 260) 80% 60% / .8); }
+.cat-label.is-muted { opacity: .18; }
+
+.hud { position: absolute; inset: 0; z-index: 4; pointer-events: none; padding: 20px 22px; }
+.hud > * { pointer-events: auto; }
+.hud-title { max-width: 330px; }
+.eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--faint); margin-bottom: 9px;
+}
+.eyebrow .line { width: 22px; height: 1px; background: currentColor; opacity: .5; }
+.hud-title h1 {
+  margin: 0 0 7px; font-size: clamp(22px, 2.4vw, 32px); line-height: 1.08;
+  letter-spacing: -.035em; font-weight: 720;
+}
+.hud-title h1 .accent {
+  background: linear-gradient(96deg, var(--grad-a), var(--grad-b) 62%, var(--grad-c));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hud-title p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; max-width: 290px; }
+.hud-stats { display: flex; gap: 18px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); width: fit-content; }
+.hud-stat .v { font-family: var(--font-mono); font-size: 15px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.hud-stat .k { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-top: 2px; }
+
+.legend {
+  position: absolute; left: 22px; bottom: 20px;
+  width: 244px; padding: 12px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 14px 44px -22px rgba(0,0,0,.6);
+}
+.legend-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint);
+  padding: 0 4px 8px;
+}
+.legend-list { display: grid; gap: 1px; max-height: 212px; overflow: auto; }
+.legend-item {
+  display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px;
+  font-size: 11px; color: var(--muted); text-align: left; width: 100%;
+}
+.legend-item:hover { background: var(--panel-hover); color: var(--text); }
+.legend-item .dot { width: 5px; height: 5px; border-radius: 50%; flex: 0 0 auto; }
+.legend-item .n { margin-left: auto; font-family: var(--font-mono); font-size: 9.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.legend-item.is-active { color: var(--text); background: var(--panel-hover); }
+
+.hint-pill {
+  position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+  border-radius: 99px; border: 1px solid var(--line);
+  background: var(--panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  font-size: 10.5px; color: var(--muted); white-space: nowrap;
+}
+.hint-pill kbd {
+  font-family: var(--font-mono); font-size: 9px; border: 1px solid var(--line);
+  border-radius: 4px; padding: 1px 4px; color: var(--faint); background: var(--panel-hover);
+}
+.hint-pill .sep { width: 1px; height: 12px; background: var(--line); }
+
+.orbit-tools {
+  position: absolute; right: 22px; bottom: 20px;
+  display: flex; flex-direction: column; gap: 4px; padding: 5px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.orbit-tools button {
+  width: 30px; height: 30px; display: grid; place-items: center; border-radius: 7px; color: var(--muted);
+}
+.orbit-tools button:hover { background: var(--panel-hover); color: var(--text); }
+
+.tooltip {
+  position: absolute; z-index: 8; pointer-events: none; max-width: 280px;
+  padding: 9px 12px; border-radius: 10px;
+  background: var(--panel-solid); border: 1px solid var(--line-strong);
+  box-shadow: 0 16px 40px -18px rgba(0,0,0,.7);
+  opacity: 0; transform: translate(-50%, calc(-100% - 16px)) scale(.97);
+  transition: opacity .12s, transform .12s;
+}
+.tooltip.is-on { opacity: 1; transform: translate(-50%, calc(-100% - 16px)) scale(1); }
+.tooltip .t { font-size: 12.5px; font-weight: 650; letter-spacing: -.01em; }
+.tooltip .m { font-size: 10.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.tooltip .m .dot { width: 5px; height: 5px; border-radius: 50%; }
+.tooltip .cta { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin-top: 6px; }
+
+/* ==========================================================================
+   6. DRAWER
+   ========================================================================== */
+.scrim {
+  position: fixed; inset: 0; z-index: var(--z-scrim);
+  background: var(--scrim); opacity: 0; pointer-events: none;
+  transition: opacity .32s var(--ease);
+  backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px);
+}
+.scrim.is-open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--z-drawer);
+  width: min(var(--drawer-w), 100vw);
+  display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--panel-solid) 96%, transparent);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: -30px 0 90px -40px rgba(0,0,0,.8);
+  transform: translateX(102%);
+  transition: transform .42s var(--ease), visibility 0s linear .42s;
+  visibility: hidden;
+}
+.drawer.is-open { transform: none; visibility: visible; transition: transform .42s var(--ease), visibility 0s; }
+.drawer-head { flex: 0 0 auto; padding: 20px 22px 14px; border-bottom: 1px solid var(--line); }
+.drawer-top { display: flex; align-items: flex-start; gap: 12px; }
+.drawer-eyebrow {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--faint); margin-bottom: 6px;
+}
+.drawer-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--h, 260) 72% 60%); }
+.drawer-title { margin: 0; font-size: 22px; line-height: 1.15; letter-spacing: -.03em; font-weight: 700; }
+.drawer-sub { margin-top: 6px; font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.drawer-sub .badge {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .05em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--faint);
+}
+.drawer-sub .badge.cache { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+.drawer-sub .badge.net { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.close-btn {
+  margin-left: auto; width: 34px; height: 34px; flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 9px; color: var(--muted);
+  border: 1px solid var(--line);
+}
+.close-btn:hover { color: var(--text); background: var(--panel-hover); }
+
+.drawer-toolbar { display: flex; gap: 7px; margin-top: 15px; flex-wrap: wrap; }
+.field {
+  display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: color-mix(in srgb, var(--bg) 40%, transparent);
+}
+.field:focus-within { border-color: color-mix(in srgb, var(--accent-2) 50%, transparent); box-shadow: 0 0 0 3px var(--glow); }
+.field input { border: 0; outline: 0; background: transparent; font-size: 12px; min-width: 0; width: 100%; }
+.field svg { color: var(--faint); flex: 0 0 auto; }
+.drawer-toolbar .field.grow { flex: 1 1 170px; }
+.select-wrap { position: relative; }
+.select-wrap select {
+  appearance: none; height: 34px; padding: 0 28px 0 10px; border-radius: 9px;
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 40%, transparent);
+  font-size: 11.5px; color: var(--muted); outline: 0; cursor: pointer;
+}
+.select-wrap::after {
+  content: ""; position: absolute; right: 11px; top: 50%; width: 5px; height: 5px;
+  border-right: 1.5px solid var(--faint); border-bottom: 1.5px solid var(--faint);
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+.toggle-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 11px;
+  border-radius: 9px; border: 1px solid var(--line);
+  font-size: 11.5px; color: var(--muted); white-space: nowrap;
+}
+.toggle-btn:hover { color: var(--text); border-color: var(--line-strong); }
+.toggle-btn.is-on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 44%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+.drawer-list-meta {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 22px; border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .03em; color: var(--faint);
+}
+.drawer-list-meta .n { color: var(--muted); }
+.drawer-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; overscroll-behavior: contain; }
+.drawer-foot {
+  flex: 0 0 auto; padding: 10px 22px; border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .04em; color: var(--faint);
+  background: color-mix(in srgb, var(--bg) 35%, transparent);
+}
+.drawer-foot .live { display: inline-flex; align-items: center; gap: 6px; }
+.drawer-foot .led { width: 5px; height: 5px; border-radius: 50%; background: var(--good); box-shadow: 0 0 7px var(--good); }
+
+/* virtual list */
+.vlist { position: relative; }
+.vlist-spacer { width: 1px; pointer-events: none; }
+.vlist-window { position: absolute; inset: 0 0 auto 0; }
+.vrow {
+  height: var(--row-h); display: flex; gap: 13px; align-items: center;
+  padding: 11px 18px 11px 22px; position: relative;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  transition: background .14s;
+}
+.vrow:hover { background: var(--panel-hover); }
+.vrow .idx {
+  font-family: var(--font-mono); font-size: 9.5px; color: var(--faint);
+  width: 26px; flex: 0 0 auto; text-align: right; font-variant-numeric: tabular-nums;
+}
+.poster {
+  width: 48px; height: 48px; border-radius: 9px; flex: 0 0 auto; position: relative;
+  background:
+    radial-gradient(circle at 32% 26%, hsl(var(--h, 260) 70% 52% / .92), transparent 58%),
+    linear-gradient(145deg, hsl(var(--h, 260) 48% 24%), hsl(calc(var(--h, 260) + 46) 55% 13%));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.1);
+  display: grid; place-items: center; overflow: hidden;
+}
+.poster::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.22) .5px, transparent .5px);
+  background-size: 5px 5px; opacity: .25;
+}
+.poster svg { position: relative; z-index: 1; color: rgba(255,255,255,.9); filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+.poster .dur {
+  position: absolute; right: 3px; bottom: 3px; z-index: 2;
+  font-family: var(--font-mono); font-size: 8px; padding: 1px 3px; border-radius: 3px;
+  background: rgba(0,0,0,.72); color: #fff; letter-spacing: .01em;
+}
+.vbody { min-width: 0; flex: 1; }
+.vtitle {
+  font-size: 12.8px; font-weight: 560; line-height: 1.32; letter-spacing: -.008em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.vmeta {
+  margin-top: 4px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vmeta .ch { color: color-mix(in srgb, var(--text) 72%, transparent); max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.vmeta .sep { width: 2px; height: 2px; border-radius: 50%; background: var(--faint); }
+.vactions { display: flex; gap: 2px; align-items: center; flex: 0 0 auto; }
+.mini-btn {
+  width: 29px; height: 29px; border-radius: 7px; display: grid; place-items: center;
+  color: var(--faint); border: 1px solid transparent;
+}
+.mini-btn:hover { color: var(--text); background: color-mix(in srgb, var(--text) 7%, transparent); }
+.mini-btn.saved { color: var(--warn); }
+.mini-btn.saved svg { fill: currentColor; }
+.vrow.is-focus { background: color-mix(in srgb, var(--accent-2) 11%, transparent); }
+.vrow.is-focus::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px; background: var(--accent-2); border-radius: 99px; }
+
+.skeleton { padding: 0 22px; }
+.skel-row { height: var(--row-h); display: flex; align-items: center; gap: 13px; border-bottom: 1px solid var(--line); }
+.skel-box { background: linear-gradient(90deg, var(--panel-hover) 25%, color-mix(in srgb, var(--text) 7%, transparent) 37%, var(--panel-hover) 63%); background-size: 400% 100%; animation: shimmer 1.4s infinite; border-radius: 7px; }
+.skel-poster { width: 48px; height: 48px; flex: 0 0 auto; }
+.skel-lines { flex: 1; display: grid; gap: 7px; }
+.skel-l1 { height: 10px; width: 82%; }
+.skel-l2 { height: 8px; width: 48%; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+.empty {
+  padding: 46px 28px; text-align: center; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.empty .ring {
+  width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent-2) 9%, transparent); color: var(--accent-2);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 22%, transparent); margin-bottom: 4px;
+}
+.empty h3 { margin: 0; font-size: 14px; color: var(--text); font-weight: 600; letter-spacing: -.01em; }
+.empty p { margin: 0; font-size: 12px; max-width: 300px; line-height: 1.55; }
+.empty button.link { color: var(--accent-2); font-weight: 600; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.error-card {
+  margin: 20px; padding: 18px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.error-card h4 { margin: 0 0 6px; font-size: 13px; }
+.error-card p { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px;
+  border-radius: 8px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 600;
+}
+.btn-primary:hover { filter: brightness(1.08); }
+
+/* topic-index rows reuse vrow with a different look */
+.topic-row { height: var(--row-h); padding: 12px 22px; display: flex; align-items: center; gap: 13px; border-bottom: 1px solid color-mix(in srgb, var(--line) 65%, transparent); text-align: left; width: 100%; }
+.topic-row:hover { background: var(--panel-hover); }
+.topic-row .orb { width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto; background: radial-gradient(circle at 35% 30%, hsl(var(--h,260) 75% 64%), hsl(var(--h,260) 55% 22%)); box-shadow: 0 0 18px hsl(var(--h,260) 70% 50% / .35); }
+.topic-row .t-name { font-size: 12.8px; font-weight: 560; }
+.topic-row .t-meta { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+.topic-row .t-count { margin-left: auto; font-family: var(--font-mono); font-size: 9.5px; color: var(--faint); }
+
+/* ==========================================================================
+   7. BOOT / TOASTS / MISC
+   ========================================================================== */
+.boot {
+  position: fixed; inset: 0; z-index: var(--z-boot);
+  display: grid; place-items: center; padding: 24px;
+  background:
+    radial-gradient(700px 500px at 50% 40%, color-mix(in srgb, var(--accent-2) 9%, transparent), transparent 70%),
+    var(--bg);
+  transition: opacity .5s var(--ease), visibility .5s;
+}
+.boot.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+.boot-card { width: min(400px, 100%); text-align: center; }
+.boot-mark {
+  width: 66px; height: 66px; margin: 0 auto 22px; border-radius: 18px;
+  background:
+    radial-gradient(circle at 32% 28%, #ff3d63 0%, transparent 40%),
+    radial-gradient(circle at 70% 32%, #8b5cff 0%, transparent 44%),
+    radial-gradient(circle at 50% 78%, #38d39f 0%, transparent 46%),
+    #12141f;
+  box-shadow: 0 20px 60px -18px rgba(139,92,255,.5), inset 0 0 0 1px rgba(255,255,255,.12);
+  animation: float 3.4s ease-in-out infinite;
+}
+@keyframes float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
+.boot h1 { margin: 0 0 6px; font-size: 20px; letter-spacing: -.03em; font-weight: 700; }
+.boot p { margin: 0 0 22px; color: var(--muted); font-size: 12px; }
+.boot-bar { height: 4px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.boot-bar span { display: block; height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-2), #38d39f); transition: width .45s var(--ease); }
+.boot-status { display: flex; justify-content: space-between; gap: 12px; margin-top: 9px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .04em; color: var(--faint); }
+.boot-error { margin-top: 18px; font-size: 12px; color: var(--accent); }
+
+.toasts { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: var(--z-toast); display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toast {
+  display: flex; align-items: center; gap: 9px; padding: 10px 14px;
+  border-radius: 10px; border: 1px solid var(--line-strong);
+  background: var(--panel-solid); box-shadow: var(--shadow);
+  font-size: 12px; animation: toast-in .3s var(--ease);
+}
+.toast.is-out { animation: toast-out .25s var(--ease) forwards; }
+.toast .t-icon { color: var(--good); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(8px) scale(.97); } }
+
+.onboard {
+  position: absolute; right: 22px; top: 20px; width: 246px; padding: 14px;
+  border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow); z-index: 5;
+}
+.onboard h4 { margin: 0 0 5px; font-size: 12px; font-weight: 650; }
+.onboard p { margin: 0 0 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+.onboard ol { margin: 0 0 10px; padding-left: 16px; font-size: 11px; color: var(--muted); display: grid; gap: 3px; }
+.onboard .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.onboard .dismiss { font-size: 10.5px; color: var(--faint); text-decoration: underline; text-underline-offset: 2px; }
+.onboard .start { font-size: 10.5px; color: var(--accent-2); font-weight: 600; }
+
+.graph-fallback {
+  position: absolute; inset: 0; z-index: 3; display: none;
+  place-items: center; padding: 24px; text-align: center;
+}
+.graph-fallback.is-on { display: grid; }
+.graph-fallback .box { max-width: 340px; }
+.graph-fallback h3 { margin: 0 0 6px; font-size: 15px; }
+.graph-fallback p { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
+
+/* ==========================================================================
+   8. RESPONSIVE
+   ========================================================================== */
+@media (max-width: 1080px) {
+  .brand-sub { display: none; }
+  .hint-pill { display: none; }
+  .legend { width: 210px; }
+}
+@media (max-width: 860px) {
+  :root { --header-h: 68px; --row-h: 88px; }
+  .topbar { gap: 10px; padding: 0 14px; }
+  .brand-title { font-size: 14px; }
+  .brand-badge { display: none; }
+  .search-wrap { position: static; }
+  .filterbar { padding: 0 14px; gap: 8px; }
+  .legend { display: none; }
+  .hud { padding: 14px; }
+  .hud-title h1 { font-size: 21px; }
+  .hud-title p { max-width: 210px; font-size: 11px; }
+  .hud-stats { gap: 12px; margin-top: 11px; padding-top: 10px; }
+  .hud-stat .v { font-size: 12px; }
+  .onboard { display: none; }
+  .orbit-tools { right: 14px; bottom: 14px; }
+  .drawer-head { padding: 16px 16px 12px; }
+  .drawer-title { font-size: 19px; }
+  .drawer-list-meta { padding: 8px 16px; }
+  .drawer-foot { padding: 9px 16px; }
+  .vrow { padding: 10px 10px 10px 16px; gap: 10px; }
+  .vrow .idx { display: none; }
+  .poster { width: 44px; height: 44px; }
+  .vmeta .ch { max-width: 110px; }
+}
+@media (max-width: 560px) {
+  .index-status { display: none; }
+  .topbar { height: auto; min-height: var(--header-h); padding: 10px 12px; flex-wrap: wrap; row-gap: 9px; }
+  .brand { flex: 1; }
+  .brand-text .brand-title { max-width: 210px; }
+  .header-actions { gap: 2px; }
+  .header-actions .icon-btn { padding: 0 7px; }
+  .search-wrap { order: 3; flex: 1 0 100%; max-width: none; }
+  .search-box { height: 38px; }
+  .search-kbd { display: none; }
+  .search-panel { left: 0; right: 0; top: calc(100% + 7px); max-height: 60vh; }
+  .filterbar { height: 46px; }
+  .hud-title { display: none; }
+  .hud-stats { display: none; }
+  .hint-pill { display: none; }
+  .orbit-tools { bottom: 12px; right: 12px; }
+  .drawer { width: 100vw; }
+  .drawer-toolbar { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .drawer-toolbar .field.grow { grid-column: 1 / -1; }
+  .drawer-toolbar .select-wrap, .drawer-toolbar .select-wrap select,
+  .drawer-toolbar .toggle-btn { width: 100%; }
+  .drawer-toolbar .toggle-btn { justify-content: center; }
+  .drawer-path, .sep-path { display: none; }
+  .vmeta { font-size: 10px; }
+  .toasts { bottom: 14px; width: calc(100% - 24px); }
+  .toast { width: 100%; justify-content: center; }
+  .stage::after { background: radial-gradient(ellipse 100% 85% at 50% 46%, transparent 48%, color-mix(in srgb, var(--bg) 80%, transparent) 100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+<noscript><div style="padding:16px;background:#7f1d1d;color:#fff;font:14px system-ui">This app needs JavaScript. Enable it and reload.</div></noscript>
+<a class="skip-link" href="#stage">Skip to the knowledge graph</a>
+
+<div class="boot" id="boot" aria-live="polite">
+  <div class="boot-card">
+    <div class="boot-mark" aria-hidden="true"></div>
+    <h1>YouTube Second Brain</h1>
+    <p>Mapping 108,000 videos across 480 topics</p>
+    <div class="boot-bar"><span id="bootBar"></span></div>
+    <div class="boot-status"><span id="bootStep">Fetching manifest</span><span id="bootPct">0%</span></div>
+    <div class="boot-error" id="bootError" hidden></div>
+  </div>
+</div>
+
+<div class="shell" id="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div class="brand-text">
+        <h1 class="brand-title">Second Brain <span class="brand-badge">100K</span></h1>
+        <div class="brand-sub">
+          <span id="brandVideos">—</span><span class="dot"></span>
+          <span id="brandTopics">—</span><span class="dot"></span>
+          <span id="brandCategories">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-wrap" id="searchWrap">
+      <label class="sr-only" for="globalSearch">Search topics and 108,000 video titles</label>
+      <div class="search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+        <input id="globalSearch" type="search" placeholder="Search 108,000 videos or 480 topics…" autocomplete="off" spellcheck="false">
+        <span class="search-kbd"><kbd>⌘</kbd><kbd>K</kbd></span>
+        <button class="search-clear" id="searchClear" aria-label="Clear search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="search-panel" id="searchPanel" role="listbox" aria-label="Search results"></div>
+    </div>
+
+    <div class="header-actions">
+      <button class="icon-btn" id="browseBtn" title="Browse all topics" aria-label="Browse all topics">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </button>
+      <button class="icon-btn" id="savedBtn" title="Saved videos" aria-label="Saved videos">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.7 5.7 6.3.9-4.6 4.4 1.1 6.2-5.5-3-5.5 3 1.1-6.2L3 9.6l6.3-.9L12 3Z"/></svg>
+        <span class="count" id="savedCount">0</span>
+      </button>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle dark and light theme">
+        <svg data-theme-icon="moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
+        <svg data-theme-icon="sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="filterbar">
+    <div class="filter-scroll" id="categoryChips" role="group" aria-label="Filter by discipline"></div>
+    <div class="filter-spacer"></div>
+    <div class="index-status" id="indexStatus" data-state="idle" title="Global title index status">
+      <span class="led"></span><span id="indexStatusText">Title index idle</span>
+    </div>
+  </div>
+
+  <main class="stage" id="stage">
+    <div id="canvasHost" aria-label="3D knowledge graph of 480 topics" role="img"></div>
+    <div class="labels" id="labels" aria-hidden="true"></div>
+
+    <div class="hud">
+      <div class="hud-title">
+        <div class="eyebrow"><span class="line"></span><span>Knowledge graph</span></div>
+        <h1>Your second brain,<br><span class="accent">mapped in 3D.</span></h1>
+        <p>Pre-computed coordinates. Shards fetched on demand. Nothing simulated in the browser except the orbit.</p>
+        <div class="hud-stats">
+          <div class="hud-stat"><div class="v" id="statVideos">—</div><div class="k">videos</div></div>
+          <div class="hud-stat"><div class="v" id="statTopics">—</div><div class="k">topics</div></div>
+          <div class="hud-stat"><div class="v" id="statEdges">—</div><div class="k">links</div></div>
+          <div class="hud-stat"><div class="v" id="statFps">60</div><div class="k">fps</div></div>
+        </div>
+      </div>
+
+      <div class="legend" id="legend">
+        <div class="legend-head"><span>Disciplines</span><span id="legendCount">12</span></div>
+        <div class="legend-list" id="legendList"></div>
+      </div>
+
+      <div class="hint-pill">
+        <span>Drag to orbit</span><span class="sep"></span>
+        <span>Scroll to zoom</span><span class="sep"></span>
+        <span>Click a node</span><span class="sep"></span>
+        <span><kbd>/</kbd> search</span>
+      </div>
+
+      <div class="orbit-tools">
+        <button id="zoomIn" title="Zoom in" aria-label="Zoom in"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button id="zoomOut" title="Zoom out" aria-label="Zoom out"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></button>
+        <button id="resetView" title="Reset view" aria-label="Reset view"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+      </div>
+
+      <div class="onboard" id="onboard" hidden>
+        <h4>Start with a cluster</h4>
+        <p>Each sphere is a topic. Its size is the log of its video count. This build ships a synthetic 108k corpus — swap in a real export with the same schema.</p>
+        <ol>
+          <li>Click a node to load that shard.</li>
+          <li>Star videos to keep them offline.</li>
+          <li>Search across every title, instantly.</li>
+        </ol>
+        <div class="row">
+          <button class="start" id="onboardStart">Open Transformer Architecture →</button>
+          <button class="dismiss" id="onboardDismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tooltip" id="tooltip" role="status"></div>
+
+    <div class="graph-fallback" id="graphFallback">
+      <div class="box">
+        <h3>WebGL is unavailable</h3>
+        <p>The 3D graph needs WebGL, but the full library still works. Browse all 480 topics as a sortable list.</p>
+        <button class="btn-primary" id="fallbackBrowse">Browse topics</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="drawerTitle" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div class="drawer-top">
+      <div style="min-width:0">
+        <div class="drawer-eyebrow" id="drawerEyebrow"><span class="dot"></span><span id="drawerEyebrowText">Topic</span></div>
+        <h2 class="drawer-title" id="drawerTitle">Topic</h2>
+        <div class="drawer-sub" id="drawerSub"></div>
+      </div>
+      <button class="close-btn" id="drawerClose" aria-label="Close panel">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-toolbar" id="drawerToolbar">
+      <label class="field grow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+        <span class="sr-only">Filter this topic</span>
+        <input id="drawerSearch" type="search" placeholder="Filter this topic…" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="select-wrap">
+        <label class="sr-only" for="drawerSort">Sort videos</label>
+        <select id="drawerSort">
+          <option value="newest">Newest</option>
+          <option value="views">Most viewed</option>
+          <option value="duration">Longest</option>
+          <option value="az">A–Z</option>
+        </select>
+      </div>
+      <button class="toggle-btn" id="drawerSavedOnly" aria-pressed="false">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.7 5.7 6.3.9-4.6 4.4 1.1 6.2-5.5-3-5.5 3 1.1-6.2L3 9.6l6.3-.9L12 3Z"/></svg>
+        Saved
+      </button>
+    </div>
+  </div>
+  <div class="drawer-list-meta" id="drawerMeta"><span class="n">—</span><span id="drawerRange">—</span></div>
+  <div class="drawer-scroll" id="drawerScroll">
+    <div class="vlist" id="vlist">
+      <div class="vlist-spacer" id="vlistSpacer"></div>
+      <div class="vlist-window" id="vlistWindow"></div>
+    </div>
+  </div>
+  <div class="drawer-foot" id="drawerFoot">
+    <span class="live"><span class="led"></span><span id="drawerFootLeft">Ready</span></span>
+    <span id="drawerFootRight">—</span>
+  </div>
+</aside>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.180.0/build/three.module.js"
+  }
+}
+</script>
+<script>
+  // If the module or its CDN dependencies never arrive, say so instead of
+  // leaving the boot screen spinning forever.
+  setTimeout(function () {
+    if (window.__YTB) return;
+    var el = document.getElementById('bootError');
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = 'Still loading. If this persists, the CDN assets (Three.js, MiniSearch, Tailwind) could not be reached. Check the network and reload.';
+  }, 12000);
+</script>
+<script type="module">
+/* ==========================================================================
+   YouTube Second Brain 100k — application
+   Vanilla ES module. No bundler, no framework, no backend.
+
+   Section map
+   1. constants + formatting
+   2. persistence (localStorage, IndexedDB)
+   3. data layer (manifest, search indexes, shard cache)
+   4. 3D graph
+   5. drawer + virtual list
+   6. search
+   7. chrome (theme, chips, legend, toasts, keyboard)
+   8. boot
+   ========================================================================== */
+
+import * as THREE from 'three';
+
+/* ------------------------------------------------------------------ *
+ * 1. constants + formatting
+ * ------------------------------------------------------------------ */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isMobile = () => matchMedia('(max-width: 860px)').matches;
+
+const STORE_KEY = 'yt-second-brain:v1';
+const ONBOARD_KEY = 'yt-second-brain:onboarded';
+const DB_NAME = 'yt-second-brain';
+const DB_VERSION = 1;
+
+const dn = new Intl.NumberFormat('en-US');
+const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+const fmtNum = (n) => dn.format(n);
+const fmtCompact = (n) => compact.format(n);
+
+function fmtDuration(sec) {
+  const s = Math.max(0, Math.round(sec || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const r = s % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+    : `${m}:${String(r).padStart(2, '0')}`;
+}
+
+function relDate(iso) {
+  const then = new Date(`${iso}T00:00:00Z`).getTime();
+  if (!Number.isFinite(then)) return iso;
+  const days = Math.max(0, Math.floor((Date.now() - then) / 86400000));
+  if (days < 1) return 'today';
+  if (days < 30) return `${days}d ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  const y = Math.floor(days / 365);
+  return `${y}y ago`;
+}
+
+function hueFor(str) {
+  let h = 0;
+  for (let i = 0; i < String(str).length; i++) h = (h * 31 + String(str).charCodeAt(i)) % 360;
+  return h;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+const youtubeSearchUrl = (v) =>
+  `https://www.youtube.com/results?search_query=${encodeURIComponent(`${v.title} ${v.channel}`)}`;
+
+const DBG = [];
+window.__YTB_ERRORS = DBG;
+window.addEventListener('error', (e) => DBG.push(String(e.message || e.error)));
+window.addEventListener('unhandledrejection', (e) => DBG.push(String(e.reason)));
+
+/* ------------------------------------------------------------------ *
+ * 2. persistence
+ * ------------------------------------------------------------------ */
+const state = {
+  manifest: null,
+  topics: [],
+  topicById: new Map(),
+  categories: [],
+  topicIndex: null,
+  videoIndex: null,
+  videoIndexStatus: 'idle', // idle | loading | ready | error
+  videoIndexPct: 0,
+  videoIndexSource: '',
+  videoIndexPromise: null,
+  category: 'all',
+  bookmarks: {},
+  theme: 'dark',
+  recent: [],
+  ready: false,
+  search: { q: '', seq: 0, videos: [], loading: false, active: -1 },
+  drawer: {
+    mode: null, topic: null, shard: null, items: [], query: '',
+    sort: 'newest', savedOnly: false, loading: false, error: null,
+    source: '', bytes: 0, ms: 0, focusId: null, catFilter: 'all'
+  },
+  graph: null
+};
+
+function loadStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (!raw || typeof raw !== 'object') return;
+    if (raw.theme === 'light' || raw.theme === 'dark') state.theme = raw.theme;
+    if (raw.bookmarks && typeof raw.bookmarks === 'object') state.bookmarks = raw.bookmarks;
+    if (Array.isArray(raw.recent)) state.recent = raw.recent.filter((x) => typeof x === 'string').slice(0, 6);
+  } catch (err) { /* corrupted storage: start clean */ }
+}
+
+function saveStore() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      version: 1,
+      theme: state.theme,
+      bookmarks: state.bookmarks,
+      recent: state.recent,
+      savedAt: new Date().toISOString()
+    }));
+  } catch (err) {
+    toast('Storage is full — bookmarks may not persist', 'warn');
+  }
+}
+
+/* --- IndexedDB cache (shards + title index) --- */
+let dbPromise = null;
+function db() {
+  if (!('indexedDB' in window)) return Promise.resolve(null);
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const idb = req.result;
+      if (!idb.objectStoreNames.contains('shards')) idb.createObjectStore('shards', { keyPath: 'id' });
+      if (!idb.objectStoreNames.contains('assets')) idb.createObjectStore('assets', { keyPath: 'key' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+    req.onblocked = () => resolve(null);
+  });
+  return dbPromise;
+}
+
+async function dbGet(store, key) {
+  const idb = await db();
+  if (!idb) return null;
+  return new Promise((resolve) => {
+    try {
+      const req = idb.transaction(store, 'readonly').objectStore(store).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    } catch (err) { resolve(null); }
+  });
+}
+
+async function dbPut(store, value) {
+  const idb = await db();
+  if (!idb) return;
+  return new Promise((resolve) => {
+    try {
+      const tx = idb.transaction(store, 'readwrite');
+      tx.objectStore(store).put(value);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+      tx.onabort = () => resolve();
+    } catch (err) { resolve(); }
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * 3. data layer
+ * ------------------------------------------------------------------ */
+async function fetchJSON(url) {
+  const res = await fetch(url, { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+  return res.json();
+}
+
+async function fetchTextWithProgress(url, onProgress) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+  const total = Number(res.headers.get('content-length') || 0);
+  if (!res.body || !total) {
+    const text = await res.text();
+    onProgress?.(1);
+    return text;
+  }
+  const reader = res.body.getReader();
+  const chunks = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    onProgress?.(Math.min(1, received / total));
+  }
+  const merged = new Uint8Array(received);
+  let offset = 0;
+  for (const c of chunks) { merged.set(c, offset); offset += c.length; }
+  return new TextDecoder('utf-8').decode(merged);
+}
+
+function fallbackSearch(docs, q, limit = 8) {
+  const needle = q.toLowerCase().trim();
+  if (!needle) return [];
+  const scored = [];
+  for (const d of docs) {
+    const hay = `${d.name || d.title || ''} ${d.channel || ''} ${d.categoryName || ''}`.toLowerCase();
+    const idx = hay.indexOf(needle);
+    if (idx === -1) continue;
+    scored.push({ ...d, score: 100 - Math.min(idx, 90), id: d.id });
+    if (scored.length > 500) break;
+  }
+  return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+function searchTopics(q, limit = 6) {
+  if (!state.topicIndex) return [];
+  try {
+    return state.topicIndex.search(q, { prefix: true, fuzzy: 0.2, limit })
+      .filter((r) => r.type === 'topic');
+  } catch (err) { return []; }
+}
+
+async function loadVideoIndex() {
+  if (state.videoIndex || state.videoIndexPromise) return state.videoIndexPromise;
+  state.videoIndexPromise = (async () => {
+    try {
+      state.videoIndexStatus = 'loading';
+      updateIndexStatus();
+      const cached = await dbGet('assets', 'video_index');
+      let text = '';
+      let source = 'network';
+      if (cached?.text && cached.text.length > 1000) {
+        text = cached.text;
+        source = 'cache';
+        state.videoIndexPct = 1;
+        updateIndexStatus();
+      } else {
+        text = await fetchTextWithProgress('data/video_index.json', (p) => {
+          state.videoIndexPct = p;
+          updateIndexStatus();
+        });
+        await dbPut('assets', { key: 'video_index', text, savedAt: Date.now() });
+      }
+      state.videoIndexSource = source;
+      state.videoIndex = window.MiniSearch
+        ? window.MiniSearch.loadJSON(text, {
+            fields: ['t'], storeFields: ['k', 'n'], idField: 'id'
+          })
+        : null;
+      if (!state.videoIndex) throw new Error('MiniSearch failed to load');
+      state.videoIndexStatus = 'ready';
+      updateIndexStatus();
+      if (state.search.q) runSearch(state.search.q);
+    } catch (err) {
+      state.videoIndexStatus = 'error';
+      updateIndexStatus();
+      console.warn('Title index unavailable:', err);
+    }
+    return state.videoIndex;
+  })();
+  return state.videoIndexPromise;
+}
+
+const shardMemory = new Map();
+
+async function getShard(topic) {
+  if (shardMemory.has(topic.id)) {
+    return { shard: shardMemory.get(topic.id), source: 'memory', bytes: 0, ms: 0 };
+  }
+  const started = performance.now();
+  const cached = await dbGet('shards', topic.id);
+  if (cached?.text) {
+    try {
+      const shard = JSON.parse(cached.text);
+      shardMemory.set(topic.id, shard);
+      return { shard, source: 'cache', bytes: cached.text.length, ms: Math.round(performance.now() - started) };
+    } catch (err) { /* fall through to network */ }
+  }
+  const url = `data/${topic.shard}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Shard ${topic.shard} → HTTP ${res.status}`);
+  const text = await res.text();
+  const shard = JSON.parse(text);
+  if (!Array.isArray(shard.videos)) throw new Error('Malformed shard');
+  shardMemory.set(topic.id, shard);
+  await dbPut('shards', { id: topic.id, text, savedAt: Date.now() });
+  return { shard, source: 'network', bytes: text.length, ms: Math.round(performance.now() - started) };
+}
+
+function ensureShardIndex(shard) {
+  if (shard.__index || !window.MiniSearch) return shard.__index;
+  const ms = new window.MiniSearch({
+    idField: 'id', fields: ['title', 'channel'],
+    storeFields: ['id'], searchOptions: { boost: { title: 2 }, prefix: true, fuzzy: 0.15 }
+  });
+  ms.addAll(shard.videos);
+  Object.defineProperty(shard, '__index', { value: ms, enumerable: false });
+  return ms;
+}
+
+/* ------------------------------------------------------------------ *
+ * 4. 3D graph
+ * ------------------------------------------------------------------ */
+class KnowledgeGraph {
+  constructor(host, manifest, hooks) {
+    this.host = host;
+    this.manifest = manifest;
+    this.hooks = hooks;
+    this.reduced = prefersReduced;
+    this.visible = true;
+    this.pointer = new THREE.Vector2(-2, -2);
+    this.raycaster = new THREE.Raycaster();
+    this.hoverIndex = -1;
+    this.selectedIndex = -1;
+    this.pointers = new Map();
+    this.drag = { active: false, moved: 0, x: 0, y: 0 };
+    this.baseRadius = window.innerWidth < 640 ? 33 : window.innerWidth < 900 ? 27 : 24;
+    this.view = { theta: 0.72, phi: 1.12, radius: this.baseRadius, tTheta: 0.72, tPhi: 1.12, tRadius: this.baseRadius };
+    this.lastInteract = performance.now();
+    this.frames = 0;
+    this.fpsAt = performance.now();
+    this.fps = 60;
+
+    this.initScene();
+    this.build();
+    this.bind();
+    this.loop();
+  }
+
+  initScene() {
+    const { clientWidth: w, clientHeight: h } = this.host;
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    this.renderer.setSize(w, h, false);
+    this.renderer.setClearColor(0x000000, 0);
+    this.host.appendChild(this.renderer.domElement);
+
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(48, w / h, 0.1, 220);
+    this.camera.position.set(0, 0, this.view.radius);
+
+    this.scene.add(new THREE.HemisphereLight(0xbcc7ff, 0x1a0f2a, 0.6));
+    const key = new THREE.DirectionalLight(0xffffff, 1.45);
+    key.position.set(6, 9, 12);
+    this.scene.add(key);
+    const rim = new THREE.DirectionalLight(0x8b5cff, 0.95);
+    rim.position.set(-10, -6, -8);
+    this.scene.add(rim);
+
+    this.group = new THREE.Group();
+    this.scene.add(this.group);
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(this.host);
+  }
+
+  build() {
+    const topics = this.manifest.topics;
+    const cats = this.manifest.categories;
+    const catIndex = new Map(cats.map((c, i) => [c.id, i]));
+
+    /* edges */
+    const edgePositions = new Float32Array(this.manifest.edges.length * 6);
+    const edgeColors = new Float32Array(this.manifest.edges.length * 6);
+    this.manifest.edges.forEach(([a, b, w], k) => {
+      const na = topics[a], nb = topics[b];
+      edgePositions.set(na.pos, k * 6);
+      edgePositions.set(nb.pos, k * 6 + 3);
+      const hue = cats[catIndex.get(na.category)].hue;
+      const c = new THREE.Color().setHSL(hue / 360, 0.7, 0.55);
+      edgeColors.set([c.r, c.g, c.b], k * 6);
+      edgeColors.set([c.r, c.g, c.b], k * 6 + 3);
+    });
+    const edgeGeo = new THREE.BufferGeometry();
+    edgeGeo.setAttribute('position', new THREE.BufferAttribute(edgePositions, 3));
+    edgeGeo.setAttribute('color', new THREE.BufferAttribute(edgeColors, 3));
+    this.edgeMat = new THREE.LineBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0.16,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    this.group.add(new THREE.LineSegments(edgeGeo, this.edgeMat));
+
+    /* nodes */
+    const geo = new THREE.SphereGeometry(1, 22, 16);
+    this.nodeMat = new THREE.MeshPhongMaterial({
+      color: 0xffffff, shininess: 72, specular: 0x9aa0b8, reflectivity: 0.4
+    });
+    this.mesh = new THREE.InstancedMesh(geo, this.nodeMat, topics.length);
+    this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const dummy = new THREE.Object3D();
+    const baseColors = [];
+    topics.forEach((t, i) => {
+      const hue = cats[catIndex.get(t.category)].hue;
+      const color = new THREE.Color().setHSL(hue / 360, 0.78, 0.56);
+      baseColors.push(color);
+      dummy.position.set(...t.pos);
+      dummy.scale.setScalar(t.radius);
+      dummy.updateMatrix();
+      this.mesh.setMatrixAt(i, dummy.matrix);
+      this.mesh.setColorAt(i, color);
+    });
+    this.baseColors = baseColors;
+    this.nodeScale = topics.map((t) => t.radius);
+    this.mesh.instanceColor.needsUpdate = true;
+    this.group.add(this.mesh);
+
+    /* halos (one draw call) */
+    const positions = new Float32Array(topics.length * 3);
+    const colors = new Float32Array(topics.length * 3);
+    const sizes = new Float32Array(topics.length);
+    const haloAlpha = new Float32Array(topics.length);
+    topics.forEach((t, i) => {
+      const hue = cats[catIndex.get(t.category)].hue;
+      const c = new THREE.Color().setHSL(hue / 360, 0.78, 0.62);
+      positions.set(t.pos, i * 3);
+      colors.set([c.r, c.g, c.b], i * 3);
+      sizes[i] = Math.max(1.8, t.radius * 5.2);
+      haloAlpha[i] = 0.34;
+    });
+    const haloGeo = new THREE.BufferGeometry();
+    haloGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    haloGeo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+    haloGeo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+    haloGeo.setAttribute('aAlpha', new THREE.BufferAttribute(haloAlpha, 1));
+    this.haloMat = new THREE.ShaderMaterial({
+      uniforms: { uScale: { value: 380 } },
+      vertexShader: `
+        attribute vec3 aColor; attribute float aSize; attribute float aAlpha;
+        varying vec3 vColor; varying float vAlpha; uniform float uScale;
+        void main() {
+          vColor = aColor; vAlpha = aAlpha;
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = aSize * (uScale / max(1.0, -mv.z));
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `
+        varying vec3 vColor; varying float vAlpha;
+        void main() {
+          float d = length(gl_PointCoord - vec2(0.5));
+          float glow = smoothstep(0.5, 0.0, d);
+          gl_FragColor = vec4(vColor, glow * glow * vAlpha);
+        }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    this.halos = new THREE.Points(haloGeo, this.haloMat);
+    this.group.add(this.halos);
+
+    /* star field */
+    const starCount = 900;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const r = 28 + Math.random() * 70;
+      const u = Math.random() * 2 - 1;
+      const t = Math.random() * Math.PI * 2;
+      const s = Math.sqrt(1 - u * u);
+      starPos.set([Math.cos(t) * s * r, u * r, Math.sin(t) * s * r], i * 3);
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    this.starMat = new THREE.PointsMaterial({
+      color: 0x9aa4c8, size: 0.13, transparent: true, opacity: 0.5,
+      depthWrite: false, sizeAttenuation: true
+    });
+    this.group.add(new THREE.Points(starGeo, this.starMat));
+
+    /* hover + selection rings */
+    const ringGeo = new THREE.TorusGeometry(1, 0.025, 8, 64);
+    this.hoverRing = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.5
+    }));
+    this.hoverRing.visible = false;
+    this.scene.add(this.hoverRing);
+
+    this.selectRing = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({
+      color: 0xff3d63, transparent: true, opacity: 0.9
+    }));
+    this.selectRing.visible = false;
+    this.scene.add(this.selectRing);
+
+    /* HTML labels */
+    this.labels = new Map();
+    const labelLayer = document.getElementById('labels');
+    labelLayer.innerHTML = '';
+    cats.forEach((c, i) => {
+      const el = document.createElement('button');
+      el.className = 'cat-label';
+      el.style.setProperty('--h', c.hue);
+      el.innerHTML = `<span class="dot"></span><span>${escapeHtml(c.short)}</span>`;
+      el.title = `Focus ${c.name}`;
+      el.addEventListener('click', () => this.hooks.onCategory(c.id));
+      labelLayer.appendChild(el);
+      this.labels.set(c.id, el);
+    });
+    this.labelLayer = labelLayer;
+  }
+
+  bind() {
+    const host = this.host;
+    host.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.pointers.size === 2) {
+        const [a, b] = [...this.pointers.values()];
+        this.pinch = Math.hypot(a.x - b.x, a.y - b.y);
+        this.drag.active = false;
+      } else {
+        this.drag = { active: true, moved: 0, x: e.clientX, y: e.clientY };
+        host.classList.add('is-dragging');
+        host.setPointerCapture?.(e.pointerId);
+      }
+      this.lastInteract = performance.now();
+    });
+    host.addEventListener('pointermove', (e) => {
+      const rect = host.getBoundingClientRect();
+      this.pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1);
+      this.pointerScreen = { x: e.clientX - rect.left, y: e.clientY - rect.top, w: rect.width, h: rect.height };
+
+      if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.pointers.size === 2 && this.pinch) {
+        const [a, b] = [...this.pointers.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        this.view.tRadius = THREE.MathUtils.clamp(this.view.tRadius * (this.pinch / Math.max(1, d)), 9, 42);
+        this.pinch = d;
+        this.lastInteract = performance.now();
+        return;
+      }
+      if (!this.drag.active) return;
+      const dx = e.clientX - this.drag.x;
+      const dy = e.clientY - this.drag.y;
+      this.drag.moved += Math.abs(dx) + Math.abs(dy);
+      if (this.drag.moved > 4) {
+        this.view.tTheta -= dx * 0.005;
+        this.view.tPhi = THREE.MathUtils.clamp(this.view.tPhi - dy * 0.005, 0.18, 2.96);
+        this.lastInteract = performance.now();
+      }
+      this.drag.x = e.clientX;
+      this.drag.y = e.clientY;
+    });
+    const end = (e) => {
+      const wasDrag = this.drag.active;
+      const moved = this.drag.moved;
+      this.pointers.delete(e.pointerId);
+      if (this.pointers.size < 2) this.pinch = null;
+      this.drag.active = false;
+      this.host.classList.remove('is-dragging');
+      if (wasDrag && moved < 6 && e.pointerType !== 'touch') this.pick();
+      if (wasDrag && moved < 6 && e.pointerType === 'touch') this.pick();
+      this.lastInteract = performance.now();
+    };
+    host.addEventListener('pointerup', end);
+    host.addEventListener('pointercancel', () => { this.pointers.clear(); this.drag.active = false; this.host.classList.remove('is-dragging'); });
+    host.addEventListener('pointerleave', () => { this.hoverIndex = -1; this.hooks.onHover(null); });
+    host.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.view.tRadius = THREE.MathUtils.clamp(this.view.tRadius * (1 + e.deltaY * 0.0012), 9, 42);
+      this.lastInteract = performance.now();
+    }, { passive: false });
+    host.addEventListener('dblclick', () => this.resetView());
+    window.addEventListener('resize', () => this.resize());
+  }
+
+  pick() {
+    if (this.hoverIndex < 0) return;
+    const t = this.manifest.topics[this.hoverIndex];
+    if (t) this.hooks.onOpen(t.id);
+  }
+
+  setNodeVisual() {
+    const activeCat = this.hooks.getCategory();
+    const dummy = new THREE.Object3D();
+    const fade = new THREE.Color(0x1a1c28);
+    this.manifest.topics.forEach((t, i) => {
+      const isActive = activeCat === 'all' || t.category === activeCat;
+      dummy.position.set(...t.pos);
+      dummy.scale.setScalar(isActive ? this.nodeScale[i] : this.nodeScale[i] * 0.82);
+      dummy.updateMatrix();
+      this.mesh.setMatrixAt(i, dummy.matrix);
+      if (isActive) this.mesh.setColorAt(i, this.baseColors[i]);
+      else this.mesh.setColorAt(i, this.baseColors[i].clone().multiply(fade));
+      const halo = this.halos.geometry.getAttribute('aAlpha');
+      halo.setX(i, isActive ? 0.34 : 0.015);
+    });
+    this.mesh.instanceMatrix.needsUpdate = true;
+    this.mesh.instanceColor.needsUpdate = true;
+    this.halos.geometry.getAttribute('aAlpha').needsUpdate = true;
+    this.edgeMat.opacity = activeCat === 'all' ? 0.16 : 0.07;
+    this.labels.forEach((el, id) => el.classList.toggle('is-muted', activeCat !== 'all' && id !== activeCat));
+  }
+
+  focusCategory(catId) {
+    if (catId === 'all') { this.resetView(); return; }
+    const c = this.manifest.categories.find((x) => x.id === catId);
+    if (!c) return;
+    const [x, y, z] = c.centre;
+    this.view.tTheta = Math.atan2(x, z);
+    this.view.tPhi = Math.acos(THREE.MathUtils.clamp(y / (Math.hypot(x, y, z) || 1), -1, 1));
+    this.view.tRadius = window.innerWidth < 640 ? 22 : 17;
+    this.lastInteract = performance.now();
+  }
+
+  resetView() {
+    this.view.tTheta = 0.72;
+    this.view.tPhi = 1.12;
+    this.view.tRadius = this.baseRadius;
+    this.lastInteract = performance.now();
+    this.hooks.onResetCategory?.();
+  }
+
+  zoom(factor) {
+    this.view.tRadius = THREE.MathUtils.clamp(this.view.tRadius * factor, 9, 42);
+  }
+
+  onTheme() {
+    const light = document.documentElement.dataset.theme === 'light';
+    this.edgeMat.opacity = this.hooks.getCategory() === 'all' ? (light ? 0.30 : 0.16) : 0.07;
+    this.starMat.opacity = light ? 0.22 : 0.5;
+    this.starMat.color.set(light ? 0x6b7290 : 0x9aa4c8);
+    this.hoverRing.material.color.set(light ? 0x101221 : 0xffffff);
+  }
+
+  labelFrame() {
+    const { clientWidth: w, clientHeight: h } = this.host;
+    const v = new THREE.Vector3();
+    this.manifest.categories.forEach((c) => {
+      const el = this.labels.get(c.id);
+      if (!el) return;
+      v.set(c.centre[0], c.centre[1] + 1.7, c.centre[2]).project(this.camera);
+      const visible = v.z < 1 && v.z > -1;
+      const x = (v.x * 0.5 + 0.5) * w;
+      const y = (-v.y * 0.5 + 0.5) * h;
+      if (!visible || x < -80 || x > w + 80 || y < -40 || y > h + 40) {
+        el.style.transform = 'translate3d(-999px,-999px,0)';
+        return;
+      }
+      el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) translate(-50%,-50%)`;
+      el.style.opacity = '';
+    });
+  }
+
+  loop() {
+    const render = () => {
+      this.raf = requestAnimationFrame(render);
+      const now = performance.now();
+      const v = this.view;
+      if (!prefersReduced && !this.drag.active && !this.hoverIndex && now - this.lastInteract > 9000) {
+        v.tTheta += 0.00075;
+      }
+      v.theta += (v.tTheta - v.theta) * 0.075;
+      v.phi += (v.tPhi - v.phi) * 0.075;
+      v.radius += (v.tRadius - v.radius) * 0.075;
+
+      const sp = Math.sin(v.phi);
+      this.camera.position.set(
+        v.radius * sp * Math.sin(v.theta),
+        v.radius * Math.cos(v.phi),
+        v.radius * sp * Math.cos(v.theta)
+      );
+      this.camera.lookAt(0, 0, 0);
+
+      // raycast on the latest pointer position
+      if (this.pointerScreen && !this.drag.active) {
+        this.raycaster.setFromCamera(this.pointer, this.camera);
+        const hit = this.raycaster.intersectObject(this.mesh, false)[0];
+        const idx = hit ? hit.instanceId : -1;
+        if (idx !== this.hoverIndex) {
+          this.hoverIndex = idx;
+          this.hooks.onHover(idx >= 0 ? this.manifest.topics[idx] : null);
+        }
+      }
+
+      if (this.hoverIndex >= 0) {
+        const t = this.manifest.topics[this.hoverIndex];
+        this.hoverRing.visible = true;
+        this.hoverRing.position.set(...t.pos);
+        this.hoverRing.quaternion.copy(this.camera.quaternion);
+        this.hoverRing.scale.setScalar(t.radius * 1.55);
+      } else {
+        this.hoverRing.visible = false;
+      }
+
+      if (this.hooks.getSelected()) {
+        const t = this.manifest.topics.find((x) => x.id === this.hooks.getSelected());
+        if (t) {
+          const pulse = prefersReduced ? 1 : 1.55 + Math.sin(now / 420) * 0.12;
+          this.selectRing.visible = true;
+          this.selectRing.position.set(...t.pos);
+          this.selectRing.quaternion.copy(this.camera.quaternion);
+          this.selectRing.scale.setScalar(t.radius * pulse);
+          this.selectRing.material.opacity = 0.55 + Math.sin(now / 420) * 0.2;
+        }
+      } else {
+        this.selectRing.visible = false;
+      }
+
+      this.labelFrame();
+      this.renderer.render(this.scene, this.camera);
+
+      this.frames++;
+      if (now - this.fpsAt > 900) {
+        this.fps = Math.round((this.frames * 1000) / (now - this.fpsAt));
+        this.frames = 0;
+        this.fpsAt = now;
+        this.hooks.onFps?.(this.fps);
+      }
+    };
+    render();
+  }
+
+  resize() {
+    const { clientWidth: w, clientHeight: h } = this.host;
+    if (!w || !h) return;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h, false);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. drawer + virtual list
+ * ------------------------------------------------------------------ */
+const els = {
+  shell: $('#shell'),
+  boot: $('#boot'),
+  bootBar: $('#bootBar'),
+  bootStep: $('#bootStep'),
+  bootPct: $('#bootPct'),
+  bootError: $('#bootError'),
+  chips: $('#categoryChips'),
+  legendList: $('#legendList'),
+  legend: $('#legend'),
+  legendCount: $('#legendCount'),
+  drawer: $('#drawer'),
+  drawerTitle: $('#drawerTitle'),
+  drawerEyebrow: $('#drawerEyebrowText'),
+  drawerSub: $('#drawerSub'),
+  drawerMeta: $('#drawerMeta'),
+  drawerRange: $('#drawerRange'),
+  drawerSearch: $('#drawerSearch'),
+  drawerSort: $('#drawerSort'),
+  drawerSavedOnly: $('#drawerSavedOnly'),
+  drawerScroll: $('#drawerScroll'),
+  drawerFootLeft: $('#drawerFootLeft'),
+  drawerFootRight: $('#drawerFootRight'),
+  vlist: $('#vlist'),
+  vlistSpacer: $('#vlistSpacer'),
+  vlistWindow: $('#vlistWindow'),
+  scrim: $('#scrim'),
+  tooltip: $('#tooltip'),
+  search: $('#globalSearch'),
+  searchWrap: $('#searchWrap'),
+  searchPanel: $('#searchPanel'),
+  indexStatus: $('#indexStatus'),
+  indexStatusText: $('#indexStatusText'),
+  savedCount: $('#savedCount'),
+  toast: $('#toasts')
+};
+
+function rowHeight() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--row-h').trim();
+  return parseFloat(raw) || 92;
+}
+
+const vlist = {
+  items: [],
+  rowH: 92,
+  start: -1,
+  end: -1,
+  renderRow: null,
+  onPaint: null,
+  key: '',
+  setItems(items, renderRow, key = '') {
+    this.items = items;
+    this.renderRow = renderRow;
+    this.rowH = rowHeight();
+    this.key = key;
+    els.vlistSpacer.style.height = `${items.length * this.rowH}px`;
+    els.drawerScroll.scrollTop = 0;
+    this.start = -1; this.end = -1;
+    this.paint(true);
+  },
+  paint(force = false) {
+    const total = this.items.length;
+    if (!total) {
+      els.vlistWindow.innerHTML = '';
+      this.start = this.end = 0;
+      return;
+    }
+    const st = els.drawerScroll.scrollTop;
+    const vh = els.drawerScroll.clientHeight || 600;
+    const start = Math.max(0, Math.floor(st / this.rowH) - 2);
+    const end = Math.min(total, Math.ceil((st + vh) / this.rowH) + 2);
+    if (!force && start === this.start && end === this.end) return;
+    this.start = start;
+    this.end = end;
+    let html = '';
+    for (let i = start; i < end; i++) html += this.renderRow(this.items[i], i, this.key);
+    els.vlistWindow.style.transform = `translateY(${start * this.rowH}px)`;
+    els.vlistWindow.innerHTML = html;
+    this.onPaint?.(start, end, total);
+  },
+  refresh() { this.paint(true); }
+};
+
+let lastScrollFrame = 0;
+els.drawerScroll.addEventListener('scroll', () => {
+  if (lastScrollFrame) return;
+  lastScrollFrame = requestAnimationFrame(() => {
+    lastScrollFrame = 0;
+    vlist.paint();
+  });
+}, { passive: true });
+
+function updateDrawerRange(start, end, total) {
+  if (!total) { els.drawerRange.textContent = '—'; return; }
+  els.drawerRange.textContent = `${fmtNum(start + 1)}–${fmtNum(end)} of ${fmtNum(total)}`;
+}
+
+function posterHtml(video) {
+  const hue = hueFor(video.channelId || video.channel);
+  const isLive = video.type === 'live';
+  return `<div class="poster" style="--h:${hue}">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
+    <span class="dur">${isLive ? 'LIVE' : fmtDuration(video.duration)}</span>
+  </div>`;
+}
+
+function videoRow(video, index, mode) {
+  const saved = !!state.bookmarks[video.id];
+  const isFocus = state.drawer.focusId === video.id;
+  const topicLine = mode === 'saved'
+    ? `<a class="ch" href="#/topic/${encodeURIComponent(video.topicId)}" data-act="topic" data-topic="${escapeHtml(video.topicId)}" title="Open topic">${escapeHtml(video.topicName || '')}</a><span class="sep"></span>`
+    : '';
+  return `<div class="vrow${isFocus ? ' is-focus' : ''}" data-id="${escapeHtml(video.id)}">
+    <span class="idx">${index + 1}</span>
+    ${posterHtml(video)}
+    <div class="vbody">
+      <div class="vtitle">${escapeHtml(video.title)}</div>
+      <div class="vmeta">${topicLine}<span class="ch">${escapeHtml(video.channel)}</span><span class="sep"></span><span>${fmtCompact(video.views)} views</span><span class="sep"></span><span>${relDate(video.published)}</span></div>
+    </div>
+    <div class="vactions">
+      <button class="mini-btn${saved ? ' saved' : ''}" data-act="save" data-id="${escapeHtml(video.id)}" aria-label="${saved ? 'Remove bookmark' : 'Bookmark video'}" aria-pressed="${saved}" title="${saved ? 'Remove bookmark' : 'Bookmark'}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="${saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m12 3 2.7 5.7 6.3.9-4.6 4.4 1.1 6.2-5.5-3-5.5 3 1.1-6.2L3 9.6l6.3-.9L12 3Z"/></svg>
+      </button>
+      <a class="mini-btn" href="${escapeHtml(youtubeSearchUrl(video))}" target="_blank" rel="noopener noreferrer" aria-label="Open on YouTube" title="Open on YouTube">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14 4h6v6M20 4l-8.5 8.5"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>
+      </a>
+    </div>
+  </div>`;
+}
+
+function topicRow(topic, index) {
+  const cat = state.categories.find((c) => c.id === topic.category);
+  return `<button class="topic-row" data-act="topic" data-topic="${escapeHtml(topic.id)}">
+    <span class="orb" style="--h:${cat ? cat.hue : 260}"></span>
+    <span class="grow" style="min-width:0">
+      <span class="t-name" style="display:block">${escapeHtml(topic.name)}</span>
+      <span class="t-meta" style="display:block">${escapeHtml(topic.categoryName)}</span>
+    </span>
+    <span class="t-count">${fmtNum(topic.count)}</span>
+  </button>`;
+}
+
+async function openDrawer(mode, opts = {}) {
+  const d = state.drawer;
+  d.mode = mode;
+  d.error = null;
+  d.focusId = opts.focusId || null;
+  d.catFilter = 'all';
+  d.query = opts.query || '';
+  els.drawerSearch.value = d.query;
+  els.drawerSavedOnly.classList.remove('is-on');
+  els.drawerSavedOnly.setAttribute('aria-pressed', 'false');
+  d.savedOnly = false;
+  els.drawer.classList.add('is-open');
+  els.drawer.setAttribute('aria-hidden', 'false');
+  els.tooltip.classList.remove('is-on');
+  els.scrim.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  lastFocused = document.activeElement;
+  updateSavedCount();
+
+  if (mode === 'topic') {
+    const topic = state.topicById.get(opts.topicId);
+    if (!topic) return closeDrawer();
+    d.topic = topic;
+    d.shard = null;
+    d.items = [];
+    d.sort = 'newest';
+    els.drawerSort.value = 'newest';
+    els.drawerSort.disabled = false;
+    els.drawerSavedOnly.hidden = false;
+    els.drawerMeta.innerHTML = `<span class="n">${fmtNum(topic.count)} videos</span><span>loading shard…</span>`;
+    els.drawerRange.textContent = '—';
+    renderDrawerHead(topic, 'pending');
+    els.vlistWindow.innerHTML = '';
+    els.vlistSpacer.style.height = '0px';
+    els.drawerScroll.scrollTop = 0;
+    showSkeleton();
+    els.drawerFootLeft.textContent = 'Fetching shard';
+    els.drawerFootRight.textContent = topic.shard;
+    els.drawerClose?.focus?.();
+    try {
+      const { shard, source, bytes, ms } = await getShard(topic);
+      d.shard = shard;
+      d.source = source; d.bytes = bytes; d.ms = ms;
+      d.loading = false;
+      renderDrawerHead(topic, source);
+      applyDrawerFilters({ scrollToVideo: opts.focusId });
+      pushRecent(topic.id);
+      els.drawerFootLeft.textContent = source === 'network' ? 'Fetched on demand' : source === 'cache' ? 'Restored from IndexedDB' : 'Shard in memory';
+      els.drawerFootRight.textContent = `${ms} ms · ${(bytes / 1024).toFixed(0)} KB`;
+      if (opts.focusId) scrollToFocus();
+    } catch (err) {
+      d.error = err;
+      d.loading = false;
+      d.items = [];
+      renderDrawerHead(topic, 'error');
+      els.vlistWindow.innerHTML = `<div class="error-card" style="margin:20px">
+        <h4>Could not load this shard</h4>
+        <p>${escapeHtml(err.message)}. The manifest and other topics still work.</p>
+        <button class="btn-primary" data-act="retry">Retry</button>
+      </div>`;
+      els.vlistSpacer.style.height = '0px';
+      els.drawerMeta.innerHTML = `<span class="n">Shard unavailable</span><span>—</span>`;
+      els.drawerFootLeft.textContent = 'Error';
+      els.drawerFootRight.textContent = '—';
+    }
+  } else if (mode === 'saved') {
+    d.topic = null; d.shard = null; d.sort = 'newest';
+    els.drawerSort.value = 'newest';
+    els.drawerSort.disabled = false;
+    els.drawerSavedOnly.hidden = true;
+    renderDrawerHead(null, 'saved');
+    els.drawerFootLeft.textContent = 'Stored locally';
+    els.drawerFootRight.textContent = `${Object.keys(state.bookmarks).length} saved`;
+    applyDrawerFilters();
+    els.drawerClose?.focus?.();
+  } else if (mode === 'topics') {
+    d.topic = null; d.shard = null; d.sort = 'az';
+    els.drawerSort.value = 'az';
+    els.drawerSort.disabled = true;
+    els.drawerSavedOnly.hidden = true;
+    renderDrawerHead(null, 'topics');
+    els.drawerFootLeft.textContent = 'Manifest only';
+    els.drawerFootRight.textContent = `${fmtNum(state.topics.length)} topics · 111 KB`;
+    applyDrawerFilters();
+    els.drawerClose?.focus?.();
+  }
+  setDrawerHash(mode, opts);
+}
+
+function showSkeleton() {
+  let html = '<div class="skeleton">';
+  for (let i = 0; i < 6; i++) {
+    html += `<div class="skel-row"><div class="skel-box skel-poster"></div><div class="skel-lines"><div class="skel-box skel-l1"></div><div class="skel-box skel-l2"></div></div></div>`;
+  }
+  html += '</div>';
+  els.vlistWindow.style.transform = 'none';
+  els.vlistWindow.innerHTML = html;
+}
+
+function renderDrawerHead(topic, source) {
+  const d = state.drawer;
+  if (d.mode === 'topic' && topic) {
+    const cat = state.categories.find((c) => c.id === topic.category) || { hue: 260, name: topic.categoryName };
+    els.drawerEyebrow.innerHTML = `<span class="dot" style="background:hsl(${cat.hue} 72% 60%)"></span><span>${escapeHtml(cat.name || topic.categoryName)}</span>`;
+    els.drawerTitle.textContent = topic.name;
+    const badge = source === 'network'
+      ? '<span class="badge net">fetched</span>'
+      : source === 'cache'
+        ? '<span class="badge cache">indexeddb</span>'
+        : source === 'memory'
+          ? '<span class="badge cache">in memory</span>'
+          : source === 'error'
+            ? '<span class="badge" style="color:var(--accent)">failed</span>'
+            : '<span class="badge">loading</span>';
+    els.drawerSub.innerHTML = `<span>${fmtNum(topic.count)} videos</span><span class="sep">·</span>${badge}<span class="sep sep-path">·</span><span class="drawer-path">${escapeHtml(topic.shard)}</span>`;
+  } else if (d.mode === 'saved') {
+    els.drawerEyebrow.innerHTML = `<span class="dot" style="background:var(--warn)"></span><span>Local collection</span>`;
+    els.drawerTitle.textContent = 'Saved videos';
+    const n = Object.keys(state.bookmarks).length;
+    els.drawerSub.innerHTML = `<span>${fmtNum(n)} ${n === 1 ? 'video' : 'videos'}</span><span class="sep">·</span><span>localStorage</span><span class="sep">·</span><span>survives reloads</span>`;
+  } else {
+    els.drawerEyebrow.innerHTML = `<span class="dot" style="background:var(--accent-2)"></span><span>Full index</span>`;
+    els.drawerTitle.textContent = 'All topics';
+    els.drawerSub.innerHTML = `<span>${fmtNum(state.topics.length)} topics</span><span class="sep">·</span><span>${fmtNum(state.manifest.totals.videos)} videos</span><span class="sep">·</span><span>no shard loaded</span>`;
+  }
+}
+
+function filteredTopicVideos() {
+  const d = state.drawer;
+  if (!d.shard) return [];
+  let items = d.shard.videos;
+  if (d.query.trim()) {
+    const idx = ensureShardIndex(d.shard);
+    if (idx) {
+      const hits = idx.search(d.query.trim(), { limit: 5000 });
+      const byId = new Map(d.shard.videos.map((v) => [v.id, v]));
+      items = hits.map((h) => byId.get(h.id)).filter(Boolean);
+    } else {
+      const q = d.query.toLowerCase();
+      items = items.filter((v) => v.title.toLowerCase().includes(q) || v.channel.toLowerCase().includes(q));
+    }
+  }
+  if (d.savedOnly) items = items.filter((v) => state.bookmarks[v.id]);
+  const sort = d.query.trim() ? 'relevance' : d.sort;
+  if (sort === 'newest') items = [...items].sort((a, b) => (a.published < b.published ? 1 : a.published > b.published ? -1 : b.views - a.views));
+  else if (sort === 'views') items = [...items].sort((a, b) => b.views - a.views);
+  else if (sort === 'duration') items = [...items].sort((a, b) => b.duration - a.duration);
+  else if (sort === 'az') items = [...items].sort((a, b) => a.title.localeCompare(b.title));
+  return items;
+}
+
+function savedVideos() {
+  const d = state.drawer;
+  let items = Object.values(state.bookmarks);
+  if (d.query.trim()) {
+    const q = d.query.toLowerCase();
+    items = items.filter((v) =>
+      v.title.toLowerCase().includes(q) || v.channel.toLowerCase().includes(q) ||
+      (v.topicName || '').toLowerCase().includes(q));
+  }
+  if (d.sort === 'views') items.sort((a, b) => b.views - a.views);
+  else if (d.sort === 'duration') items.sort((a, b) => b.duration - a.duration);
+  else if (d.sort === 'az') items.sort((a, b) => a.title.localeCompare(b.title));
+  else items.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  return items;
+}
+
+function filteredTopics() {
+  const d = state.drawer;
+  let items = state.topics;
+  if (d.query.trim()) {
+    const q = d.query.toLowerCase();
+    items = items.filter((t) => t.name.toLowerCase().includes(q) || t.categoryName.toLowerCase().includes(q));
+  }
+  items = [...items].sort((a, b) => a.name.localeCompare(b.name));
+  return items;
+}
+
+function applyDrawerFilters(opts = {}) {
+  const d = state.drawer;
+  let items;
+  if (d.mode === 'topic') items = filteredTopicVideos();
+  else if (d.mode === 'saved') items = savedVideos();
+  else items = filteredTopics();
+  d.items = items;
+
+  els.drawerMeta.innerHTML = `<span class="n">${fmtNum(items.length)} ${d.mode === 'saved' ? 'saved' : d.mode === 'topics' ? 'topics' : 'videos'}${d.query.trim() ? ' · filtered' : ''}</span><span id="drawerRange">—</span>`;
+  els.drawerRange = $('#drawerRange');
+
+  if (!items.length) {
+    vlist.setItems([], () => '', d.mode);
+    els.vlistWindow.style.transform = 'none';
+    let empty;
+    if (d.mode === 'saved') {
+      empty = `<div class="empty"><div class="ring"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m12 3 2.7 5.7 6.3.9-4.6 4.4 1.1 6.2-5.5-3-5.5 3 1.1-6.2L3 9.6l6.3-.9L12 3Z"/></svg></div><h3>No saved videos yet</h3><p>Tap the star on any row. Saved videos live in localStorage and open without a network call.</p><button class="link" data-act="browse">Browse all topics</button></div>`;
+    } else {
+      empty = `<div class="empty"><div class="ring"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></div><h3>No matches</h3><p>Try a shorter phrase, or clear the filter. Shard search covers titles and channels.</p><button class="link" data-act="clear-filter">Clear filter</button></div>`;
+    }
+    els.vlistWindow.innerHTML = empty;
+    els.vlistSpacer.style.height = '0px';
+    els.drawerRange.textContent = '0';
+    return;
+  }
+
+  const renderRow = d.mode === 'topic'
+    ? (v, i) => videoRow(v, i, 'topic')
+    : d.mode === 'saved'
+      ? (v, i) => videoRow(v, i, 'saved')
+      : (t) => topicRow(t);
+  vlist.onPaint = updateDrawerRange;
+  vlist.setItems(items, renderRow, d.mode + ':' + d.query + ':' + d.sort + ':' + d.savedOnly);
+
+  if (opts.scrollToVideo) {
+    const idx = items.findIndex((v) => v.id === opts.scrollToVideo);
+    if (idx >= 0) {
+      requestAnimationFrame(() => {
+        els.drawerScroll.scrollTop = Math.max(0, idx * vlist.rowH - els.drawerScroll.clientHeight / 2 + vlist.rowH / 2);
+        vlist.paint(true);
+      });
+    }
+  }
+}
+
+function scrollToFocus() {
+  const d = state.drawer;
+  if (!d.focusId) return;
+  const idx = d.items.findIndex((v) => v.id === d.focusId);
+  if (idx >= 0) {
+    els.drawerScroll.scrollTop = Math.max(0, idx * vlist.rowH - els.drawerScroll.clientHeight / 2);
+    vlist.paint(true);
+  }
+  d.focusId = null;
+}
+
+let lastFocused = null;
+function closeDrawer(opts = {}) {
+  els.drawer.classList.remove('is-open');
+  els.drawer.setAttribute('aria-hidden', 'true');
+  els.scrim.classList.remove('is-open');
+  document.body.style.overflow = '';
+  state.drawer.mode = null;
+  state.drawer.focusId = null;
+  if (!opts.keepHash) {
+    if (location.hash.startsWith('#/topic') || location.hash === '#/saved') {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+  if (lastFocused?.focus) setTimeout(() => lastFocused.focus(), 40);
+}
+
+function setDrawerHash(mode, opts) {
+  const base = location.pathname + location.search;
+  if (mode === 'topic' && opts.topicId) {
+    history.replaceState(null, '', `${base}#/topic/${encodeURIComponent(opts.topicId)}${opts.focusId ? `?v=${encodeURIComponent(opts.focusId)}` : ''}`);
+  } else if (mode === 'saved') {
+    history.replaceState(null, '', `${base}#/saved`);
+  } else {
+    history.replaceState(null, '', base);
+  }
+}
+
+function pushRecent(id) {
+  state.recent = [id, ...state.recent.filter((x) => x !== id)].slice(0, 6);
+  saveStore();
+}
+
+/* bookmarks */
+function toggleBookmark(video, topic) {
+  const existing = state.bookmarks[video.id];
+  if (existing) {
+    delete state.bookmarks[video.id];
+    toast('Removed from saved');
+  } else {
+    state.bookmarks[video.id] = {
+      id: video.id, title: video.title, channel: video.channel, channelId: video.channelId,
+      duration: video.duration, views: video.views, published: video.published, type: video.type,
+      topicId: topic?.id || state.drawer.topic?.id || '',
+      topicName: topic?.name || state.drawer.topic?.name || '',
+      savedAt: Date.now()
+    };
+    toast('Saved to this browser');
+  }
+  saveStore();
+  updateSavedCount();
+  if (state.drawer.mode === 'saved' || state.drawer.savedOnly) applyDrawerFilters();
+  else vlist.refresh();
+}
+
+function updateSavedCount() {
+  const n = Object.keys(state.bookmarks).length;
+  els.savedCount.textContent = String(n);
+  $('#savedBtn').setAttribute('aria-label', `${n} saved videos`);
+  if (state.drawer.mode === 'saved') {
+    renderDrawerHead(null, 'saved');
+    els.drawerFootRight.textContent = `${n} saved`;
+  }
+}
+
+function toast(message, kind = 'ok') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span class="t-icon" style="${kind === 'warn' ? 'color:var(--warn)' : ''}">${kind === 'warn'
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4.5 4.5L19 7"/></svg>'}</span><span>${escapeHtml(message)}</span>`;
+  els.toast.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('is-out');
+    setTimeout(() => el.remove(), 300);
+  }, 2600);
+  while (els.toast.children.length > 3) els.toast.firstElementChild.remove();
+}
+
+/* drawer events */
+els.drawerScroll.addEventListener('click', (e) => {
+  const actionEl = e.target.closest('[data-act]');
+  if (!actionEl) return;
+  const act = actionEl.dataset.act;
+  if (act === 'save') {
+    e.preventDefault();
+    const id = actionEl.dataset.id;
+    let video = state.drawer.items.find((v) => v.id === id) || state.bookmarks[id];
+    if (!video) return;
+    if (state.drawer.mode === 'saved' && state.bookmarks[id]) {
+      const saved = state.bookmarks[id];
+      delete state.bookmarks[id];
+      saveStore(); updateSavedCount();
+      if (state.drawer.mode === 'saved') applyDrawerFilters();
+      toast('Removed from saved');
+      return;
+    }
+    toggleBookmark(video, state.drawer.topic);
+  } else if (act === 'topic') {
+    e.preventDefault();
+    openDrawer('topic', { topicId: actionEl.dataset.topic });
+  } else if (act === 'retry' && state.drawer.topic) {
+    const topic = state.drawer.topic;
+    shardMemory.delete(topic.id);
+    openDrawer('topic', { topicId: topic.id });
+  } else if (act === 'clear-filter') {
+    els.drawerSearch.value = '';
+    state.drawer.query = '';
+    applyDrawerFilters();
+  } else if (act === 'browse') {
+    openDrawer('topics');
+  }
+});
+
+$('#drawerClose').addEventListener('click', () => closeDrawer());
+els.scrim.addEventListener('click', () => closeDrawer());
+
+els.drawerSearch.addEventListener('input', debounce(() => {
+  state.drawer.query = els.drawerSearch.value;
+  applyDrawerFilters();
+}, 130));
+
+els.drawerSort.addEventListener('change', () => {
+  state.drawer.sort = els.drawerSort.value;
+  applyDrawerFilters();
+});
+
+els.drawerSavedOnly.addEventListener('click', () => {
+  state.drawer.savedOnly = !state.drawer.savedOnly;
+  els.drawerSavedOnly.classList.toggle('is-on', state.drawer.savedOnly);
+  els.drawerSavedOnly.setAttribute('aria-pressed', String(state.drawer.savedOnly));
+  applyDrawerFilters();
+});
+
+/* focus trap */
+els.drawer.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  const focusables = $$('button, [href], input, select, [tabindex]:not([tabindex="-1"])', els.drawer)
+    .filter((el) => !el.disabled && el.offsetParent !== null);
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
+/* ------------------------------------------------------------------ *
+ * 6. search
+ * ------------------------------------------------------------------ */
+const runSearch = debounce(async (q) => {
+  const seq = ++state.search.seq;
+  state.search.q = q;
+  const query = q.trim();
+  if (!query) {
+    els.searchWrap.classList.remove('has-value');
+    if (document.activeElement === els.search) paintIdlePanel();
+    else els.searchPanel.classList.remove('is-open');
+    return;
+  }
+  els.searchWrap.classList.add('has-value');
+  els.searchPanel.classList.add('is-open');
+  state.search.active = -1;
+  state.search.loading = true;
+
+  const topics = searchTopics(query, 6).slice(0, 5);
+  state.search.topics = topics;
+  state.search.videos = [];
+  paintSearchPanel();
+
+  if (!state.videoIndex) {
+    state.search.loading = false;
+    paintSearchPanel();
+    return;
+  }
+
+  let hits = [];
+  try {
+    hits = state.videoIndex.search(query, { prefix: true, fuzzy: 0.15, limit: 40 });
+  } catch (err) { hits = []; }
+
+  // Resolve the shard positions into real video records. Fetch at most four
+  // distinct shards so a single query stays cheap.
+  const groups = new Map();
+  for (const h of hits) {
+    if (!groups.has(h.k)) groups.set(h.k, []);
+    groups.get(h.k).push(h);
+  }
+  const selected = [...groups.entries()].slice(0, 4);
+  const resolved = [];
+  await Promise.all(selected.map(async ([k, list]) => {
+    const topic = state.topics[k];
+    if (!topic) return;
+    try {
+      const { shard } = await getShard(topic);
+      for (const h of list.slice(0, 4)) {
+        const v = shard.videos[h.n];
+        if (v) resolved.push({ video: v, topic, score: h.score });
+      }
+    } catch (err) { /* skip unavailable shard */ }
+  }));
+  resolved.sort((a, b) => b.score - a.score);
+  if (seq !== state.search.seq) return;
+  state.search.videos = resolved.slice(0, 10);
+  state.search.loading = false;
+  paintSearchPanel();
+}, 190);
+
+const SUGGESTED = ['transformer_architecture', 'retrieval_augmented_generation', 'ai_agents', 'ai_product_strategy'];
+
+function paintIdlePanel() {
+  if (!state.manifest) return;
+  const recent = state.recent.map((id) => state.topicById.get(id)).filter(Boolean).slice(0, 4);
+  const list = recent.length ? recent : SUGGESTED.map((id) => state.topicById.get(id)).filter(Boolean);
+  const label = recent.length ? 'Recently opened' : 'Start here';
+  let html = `<div class="search-section"><div class="search-label"><span>${label}</span><span class="status">${list.length} topics</span></div>`;
+  for (const t of list) {
+    const cat = state.categories.find((c) => c.id === t.category);
+    html += `<button class="search-item" role="option" data-kind="topic" data-id="${escapeHtml(t.id)}">
+      <span class="avatar" style="--h:${cat ? cat.hue : 260}">${escapeHtml(t.name.slice(0, 2).toUpperCase())}</span>
+      <span class="grow"><span class="s-title" style="display:block">${escapeHtml(t.name)}</span><span class="s-meta">${escapeHtml(t.categoryName)} · ${fmtNum(t.count)} videos</span></span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><path d="m9 6 6 6-6 6"/></svg>
+    </button>`;
+  }
+  html += `</div><div class="search-hint"><kbd class="inline">↵</kbd> open <span class="sep">·</span> <kbd class="inline">⌘K</kbd> search <span class="sep">·</span> <kbd class="inline">esc</kbd> close</div>`;
+  els.searchPanel.innerHTML = html;
+  els.searchPanel.classList.add('is-open');
+}
+
+function paintSearchPanel() {
+  const q = state.search.q.trim();
+  if (!q) return;
+  const topics = state.search.topics || [];
+  let html = '';
+
+  html += `<div class="search-section"><div class="search-label"><span>Topics</span><span class="status">${topics.length} match${topics.length === 1 ? '' : 'es'}</span></div>`;
+  if (topics.length) {
+    for (const t of topics) {
+      const cat = state.categories.find((c) => c.id === t.category);
+      html += `<button class="search-item" role="option" data-kind="topic" data-id="${escapeHtml(t.slug)}">
+        <span class="avatar" style="--h:${cat ? cat.hue : 260}">${escapeHtml(t.name.slice(0, 2).toUpperCase())}</span>
+        <span class="grow"><span class="s-title" style="display:block">${escapeHtml(t.name)}</span><span class="s-meta">${escapeHtml(t.categoryName)} · ${fmtNum(t.count)} videos</span></span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><path d="m9 6 6 6-6 6"/></svg>
+      </button>`;
+    }
+  } else {
+    html += `<div class="search-empty">No topic matches. Try “agents”, “RAG” or “quantization”.</div>`;
+  }
+  html += '</div>';
+
+  html += `<div class="search-section"><div class="search-label"><span>Video titles</span><span class="status">${state.videoIndexStatus === 'ready'
+    ? (state.search.loading ? 'resolving…' : `${state.search.videos.length} shown`)
+    : state.videoIndexStatus === 'loading' ? `indexing ${Math.round(state.videoIndexPct * 100)}%` : state.videoIndexStatus === 'error' ? 'unavailable' : 'warming up'}</span></div>`;
+  if (state.search.videos.length) {
+    for (const { video, topic } of state.search.videos) {
+      const cat = state.categories.find((c) => c.id === topic.category);
+      html += `<button class="search-item" role="option" data-kind="video" data-topic="${escapeHtml(topic.id)}" data-video="${escapeHtml(video.id)}">
+        <span class="avatar" style="--h:${cat ? cat.hue : 260}"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg></span>
+        <span class="grow"><span class="s-title" style="display:block">${escapeHtml(video.title)}</span><span class="s-meta">${escapeHtml(video.channel)} · ${escapeHtml(topic.name)}</span></span>
+      </button>`;
+    }
+  } else if (state.videoIndexStatus === 'ready' && !state.search.loading) {
+    html += `<div class="search-empty">No title matches in the 108k index.</div>`;
+  } else {
+    html += `<div class="search-empty">${state.videoIndexStatus === 'loading'
+      ? `Warming the 12 MB title index… ${Math.round(state.videoIndexPct * 100)}%`
+      : 'The title index loads in the background after first paint.'}</div>`;
+  }
+  html += '</div>';
+  html += `<div class="search-hint"><kbd class="inline">↵</kbd> open first topic <span class="sep">·</span> <kbd class="inline">esc</kbd> close</div>`;
+  els.searchPanel.innerHTML = html;
+}
+
+els.searchPanel.addEventListener('click', (e) => {
+  const item = e.target.closest('.search-item');
+  if (!item) return;
+  if (item.dataset.kind === 'topic') {
+    closeSearch();
+    openDrawer('topic', { topicId: item.dataset.id });
+  } else {
+    closeSearch();
+    openDrawer('topic', { topicId: item.dataset.topic, focusId: item.dataset.video });
+  }
+});
+
+function closeSearch() {
+  els.searchPanel.classList.remove('is-open');
+  state.search.active = -1;
+}
+
+els.search.addEventListener('input', () => {
+  runSearch(els.search.value);
+});
+els.search.addEventListener('focus', () => {
+  if (state.search.q.trim()) {
+    els.searchPanel.classList.add('is-open');
+    paintSearchPanel();
+  } else {
+    paintIdlePanel();
+  }
+});
+els.search.addEventListener('keydown', (e) => {
+  const items = $$('.search-item', els.searchPanel);
+  if (!items.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    state.search.active = e.key === 'ArrowDown'
+      ? Math.min(items.length - 1, state.search.active + 1)
+      : Math.max(0, state.search.active - 1);
+    items.forEach((el, i) => el.classList.toggle('is-active', i === state.search.active));
+    items[state.search.active]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    (items[state.search.active] || items[0]).click();
+  } else if (e.key === 'Escape') {
+    closeSearch();
+    els.search.blur();
+  }
+});
+$('#searchClear').addEventListener('click', () => {
+  els.search.value = '';
+  state.search.q = '';
+  els.searchWrap.classList.remove('has-value');
+  els.search.focus();
+  paintIdlePanel();
+});
+document.addEventListener('click', (e) => {
+  if (!els.searchWrap.contains(e.target)) closeSearch();
+});
+
+/* ------------------------------------------------------------------ *
+ * 7. chrome
+ * ------------------------------------------------------------------ */
+function setTheme(theme, persist = true) {
+  state.theme = theme;
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#06070b' : '#f3f4f9');
+  $$('[data-theme-icon]').forEach((el) => { el.hidden = el.dataset.themeIcon !== (theme === 'dark' ? 'moon' : 'sun'); });
+  const btn = $('#themeBtn');
+  if (btn) btn.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`);
+  if (persist) saveStore();
+  state.graph?.onTheme();
+  if (state.manifest) paintCategoryChrome();
+}
+
+function setCategory(id) {
+  state.category = id;
+  state.graph?.focusCategory(id);
+  state.graph?.setNodeVisual();
+  paintCategoryChrome();
+  if (id !== 'all') {
+    const c = state.categories.find((x) => x.id === id);
+    toast(`Focused ${c ? c.name : id}`, 'ok');
+  }
+}
+
+function paintCategoryChrome() {
+  if (!state.manifest) return;
+  els.chips.innerHTML = '';
+  const all = document.createElement('button');
+  all.className = `chip${state.category === 'all' ? ' is-active' : ''}`;
+  all.innerHTML = `<span class="dot" style="--h:255"></span>All<span class="n">${fmtCompact(state.manifest.totals.videos)}</span>`;
+  all.addEventListener('click', () => setCategory('all'));
+  els.chips.appendChild(all);
+
+  for (const c of state.categories) {
+    const b = document.createElement('button');
+    b.className = `chip${state.category === c.id ? ' is-active' : ''}`;
+    b.style.setProperty('--h', c.hue);
+    b.innerHTML = `<span class="dot"></span>${escapeHtml(c.short)}<span class="n">${fmtCompact(c.count)}</span>`;
+    b.title = c.blurb;
+    b.addEventListener('click', () => setCategory(state.category === c.id ? 'all' : c.id));
+    els.chips.appendChild(b);
+  }
+
+  els.legendList.innerHTML = '';
+  for (const c of state.categories) {
+    const b = document.createElement('button');
+    b.className = `legend-item${state.category === c.id ? ' is-active' : ''}`;
+    b.innerHTML = `<span class="dot" style="background:hsl(${c.hue} 70% 58%)"></span><span>${escapeHtml(c.short)}</span><span class="n">${fmtCompact(c.count)}</span>`;
+    b.addEventListener('click', () => setCategory(state.category === c.id ? 'all' : c.id));
+    els.legendList.appendChild(b);
+  }
+  els.legendCount.textContent = String(state.categories.length);
+}
+
+function updateIndexStatus() {
+  const s = state.videoIndexStatus;
+  els.indexStatus.dataset.state = s;
+  if (s === 'loading') els.indexStatusText.textContent = `Indexing titles · ${Math.round(state.videoIndexPct * 100)}%`;
+  else if (s === 'ready') els.indexStatusText.textContent = `Titles ready · ${fmtCompact(state.manifest?.totals.videos || 108000)}`;
+  else if (s === 'error') els.indexStatusText.textContent = 'Title index unavailable';
+  else els.indexStatusText.textContent = 'Title index idle';
+}
+
+/* hover tooltip */
+function onHover(topic) {
+  if (!topic) {
+    els.tooltip.classList.remove('is-on');
+    return;
+  }
+  const cat = state.categories.find((c) => c.id === topic.category);
+  els.tooltip.innerHTML = `<div class="t">${escapeHtml(topic.name)}</div>
+    <div class="m"><span class="dot" style="background:hsl(${cat ? cat.hue : 260} 72% 60%)"></span>${escapeHtml(topic.categoryName)} · ${fmtNum(topic.count)} videos</div>
+    <div class="cta">Click to open shard</div>`;
+  const p = state.graph?.pointerScreen;
+  if (p) {
+    els.tooltip.style.left = `${p.x}px`;
+    els.tooltip.style.top = `${p.y}px`;
+  }
+  els.tooltip.classList.add('is-on');
+}
+
+/* header actions */
+$('#themeBtn').addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
+$('#savedBtn').addEventListener('click', () => openDrawer('saved'));
+$('#browseBtn').addEventListener('click', () => openDrawer('topics'));
+$('#fallbackBrowse').addEventListener('click', () => openDrawer('topics'));
+$('#zoomIn').addEventListener('click', () => state.graph?.zoom(0.86));
+$('#zoomOut').addEventListener('click', () => state.graph?.zoom(1.16));
+$('#resetView').addEventListener('click', () => {
+  state.category = 'all';
+  state.graph?.resetView();
+  state.graph?.setNodeVisual();
+  paintCategoryChrome();
+});
+
+/* onboarding */
+function initOnboarding() {
+  const el = $('#onboard');
+  let dismissed = false;
+  try { dismissed = localStorage.getItem(ONBOARD_KEY) === '1'; } catch (err) { /* ignore */ }
+  if (dismissed) return;
+  el.hidden = false;
+  $('#onboardDismiss').addEventListener('click', () => {
+    el.hidden = true;
+    try { localStorage.setItem(ONBOARD_KEY, '1'); } catch (err) { /* ignore */ }
+  });
+  $('#onboardStart').addEventListener('click', () => {
+    el.hidden = true;
+    try { localStorage.setItem(ONBOARD_KEY, '1'); } catch (err) { /* ignore */ }
+    openDrawer('topic', { topicId: 'transformer_architecture' });
+  });
+}
+
+/* keyboard */
+window.addEventListener('keydown', (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    els.search.focus();
+    els.search.select();
+  } else if (e.key === '/' && !typing) {
+    e.preventDefault();
+    els.search.focus();
+  } else if (e.key === 'Escape') {
+    if (els.searchPanel.classList.contains('is-open')) closeSearch();
+    else if (els.drawer.classList.contains('is-open')) closeDrawer();
+  }
+});
+
+/* hash routing */
+function routeFromHash() {
+  const hash = location.hash;
+  if (hash === '#/saved') { openDrawer('saved'); return; }
+  const m = hash.match(/^#\/topic\/([^/?]+)(?:\?v=([^&]+))?/);
+  if (m) {
+    const id = decodeURIComponent(m[1]);
+    if (state.topicById.has(id)) {
+      openDrawer('topic', { topicId: id, focusId: m[2] ? decodeURIComponent(m[2]) : null });
+    }
+  }
+}
+window.addEventListener('hashchange', () => {
+  if (!state.ready) return;
+  if (!location.hash) closeDrawer({ keepHash: true });
+  else routeFromHash();
+});
+
+/* ------------------------------------------------------------------ *
+ * 8. boot
+ * ------------------------------------------------------------------ */
+function bootProgress(pct, label) {
+  els.bootBar.style.width = `${Math.round(pct)}%`;
+  els.bootPct.textContent = `${Math.round(pct)}%`;
+  if (label) els.bootStep.textContent = label;
+}
+
+function bootFail(err) {
+  els.bootError.hidden = false;
+  els.bootError.textContent = `Startup failed: ${err.message}. Serve the folder over HTTP (python3 -m http.server) rather than opening the file directly.`;
+  els.bootStep.textContent = 'Error';
+  els.bootBar.style.background = 'var(--accent)';
+}
+
+async function init() {
+  loadStore();
+  setTheme(state.theme, false);
+  updateSavedCount();
+  bootProgress(8, 'Fetching manifest');
+
+  const manifest = await fetchJSON('data/manifest.json');
+  state.manifest = manifest;
+  state.topics = manifest.topics;
+  state.topicById = new Map(manifest.topics.map((t) => [t.id, t]));
+  state.categories = manifest.categories;
+  bootProgress(38, 'Loading search index');
+
+  try {
+    const idxRaw = await fetch('data/search_index.json').then((r) => {
+      if (!r.ok) throw new Error(`search index → HTTP ${r.status}`);
+      return r.text();
+    });
+    state.topicIndex = window.MiniSearch
+      ? window.MiniSearch.loadJSON(idxRaw, {
+          fields: ['name', 'categoryName'],
+          storeFields: ['type', 'name', 'category', 'categoryName', 'count', 'slug'],
+          idField: 'id'
+        })
+      : null;
+  } catch (err) {
+    console.warn('Keyword index unavailable — falling back to substring search', err);
+    state.topicIndex = null;
+  }
+
+  bootProgress(62, 'Building 3D scene');
+  $('#brandVideos').textContent = `${fmtCompact(manifest.totals.videos)} videos`;
+  $('#brandTopics').textContent = `${fmtNum(manifest.totals.topics)} topics`;
+  $('#brandCategories').textContent = `${manifest.totals.categories} disciplines`;
+  $('#statVideos').textContent = fmtCompact(manifest.totals.videos);
+  $('#statTopics').textContent = fmtNum(manifest.totals.topics);
+  $('#statEdges').textContent = fmtNum(manifest.edges.length);
+  document.title = `YouTube Second Brain 100k — ${fmtNum(manifest.totals.videos)} videos in 3D`;
+
+  if (!state.topicIndex) {
+    // simple fallback index so search still works without the CDN MiniSearch
+    const docs = manifest.topics.map((t) => ({ ...t, type: 'topic' }));
+    state.topicIndex = {
+      search: (q, opts = {}) => fallbackSearch(docs, q, opts.limit || 8).map((d) => ({ ...d, type: 'topic' }))
+    };
+  }
+
+  paintCategoryChrome();
+  initOnboarding();
+  updateIndexStatus();
+
+  try {
+    state.graph = new KnowledgeGraph($('#canvasHost'), manifest, {
+      onHover,
+      onOpen: (id) => openDrawer('topic', { topicId: id }),
+      getCategory: () => state.category,
+      getSelected: () => (state.drawer.mode === 'topic' ? state.drawer.topic?.id : null),
+      onCategory: (id) => setCategory(state.category === id ? 'all' : id),
+      onResetCategory: () => { state.category = 'all'; paintCategoryChrome(); },
+      onFps: (fps) => { const el = $('#statFps'); if (el) el.textContent = String(fps); }
+    });
+  } catch (err) {
+    console.warn('WebGL unavailable', err);
+    $('#graphFallback').classList.add('is-on');
+    $('#canvasHost').style.display = 'none';
+  }
+
+  state.ready = true;
+  window.__YTB_READY_AT = performance.now();
+  bootProgress(100, 'Ready');
+  setTimeout(() => {
+    els.boot.classList.add('is-done');
+    els.shell.classList.add('is-ready');
+  }, 260);
+
+  routeFromHash();
+
+  const startIndex = () => loadVideoIndex().then(() => {
+    if (state.search.q) runSearch(state.search.q);
+  });
+  if ('requestIdleCallback' in window) requestIdleCallback(startIndex, { timeout: 2200 });
+  else setTimeout(startIndex, 1400);
+}
+
+/* test + debug surface */
+window.__YTB = {
+  get ready() { return state.ready; },
+  state,
+  get manifest() { return state.manifest; },
+  openTopic: (id, focusId = null) => openDrawer('topic', { topicId: id, focusId }),
+  openSaved: () => openDrawer('saved'),
+  openBrowse: () => openDrawer('topics'),
+  closeDrawer,
+  setCategory,
+  setTheme,
+  resetView: () => { state.category = 'all'; state.graph?.resetView(); state.graph?.setNodeVisual(); paintCategoryChrome(); },
+  search: (q) => { els.search.value = q; runSearch(q); },
+  loadVideoIndex,
+  drawerInfo: () => ({
+    mode: state.drawer.mode,
+    items: state.drawer.items.length,
+    rendered: els.vlistWindow.querySelectorAll('.vrow, .topic-row').length,
+    source: state.drawer.source,
+    topic: state.drawer.topic?.id || null,
+    error: state.drawer.error ? String(state.drawer.error.message) : null
+  }),
+  searchInfo: () => ({
+    topics: (state.search.topics || []).length,
+    videos: state.search.videos.length,
+    open: els.searchPanel.classList.contains('is-open'),
+    index: state.videoIndexStatus,
+    pct: state.videoIndexPct
+  }),
+  stats: () => ({
+    videos: state.manifest?.totals.videos,
+    topics: state.manifest?.totals.topics,
+    edges: state.manifest?.edges.length,
+    fps: state.graph?.fps || 0,
+    webgl: !!state.graph
+  }),
+  clearCaches: async () => {
+    shardMemory.clear();
+    try { localStorage.removeItem(STORE_KEY); } catch (err) { /* ignore */ }
+    const idb = await db();
+    if (idb) {
+      for (const s of ['shards', 'assets']) {
+        try { idb.transaction(s, 'readwrite').objectStore(s).clear(); } catch (err) { /* ignore */ }
+      }
+    }
+  }
+};
+
+init().catch(bootFail);
+
+</script>
+</body>
+</html>

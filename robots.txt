@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://somphol.github.io/youtube-second-brain/sitemap.xml
