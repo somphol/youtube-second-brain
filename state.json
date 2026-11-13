@@ -1,0 +1,224 @@
+{
+  "project": "youtube-second-brain",
+  "title": "Second Brain \u2014 a local-first 3D YouTube library",
+  "description": "A private, single-file static app that turns your own YouTube links and Google Takeout history into a 3D topic graph. Records and thumbnails stay in IndexedDB on the Mac; no account, no upload, no seeded corpus. Virtualized lists, local MiniSearch, 59 headless checks and an optional 100k capacity fixture.",
+  "repository": "https://github.com/somphol/youtube-second-brain",
+  "liveDemo": "https://somphol.github.io/youtube-second-brain/",
+  "release": {
+    "version": "2.0.0",
+    "commit": "8cf472d",
+    "pagesWorkflow": "https://github.com/somphol/youtube-second-brain/actions/runs/43403940233",
+    "pagesConclusion": "success",
+    "deployedAt": "2026-11-13T09:45:33Z",
+    "note": "The live site starts empty for every visitor by design. State-file commits after this snapshot trigger one more Pages run."
+  },
+  "build": {
+    "sessionStartedAt": "2026-11-13T08:48:56.397Z",
+    "startedAt": "2026-11-13T08:48:56.397Z",
+    "packagedAt": "2026-11-13T09:49:18Z",
+    "deployedAt": "2026-11-13T09:45:33Z",
+    "durationSeconds": 3621,
+    "durationHuman": "1h 0m 21s",
+    "timezone": "UTC",
+    "includes": "Orientation and GitHub auth check; original 100k design and build; pivot to a local-first personal library after clarifying that 100k is a capacity target, not seeded content; removal of the synthetic corpus and shard loader; local oEmbed/thumbnail proxy; Takeout import with year/channel/single-topic grouping; empty-state onboarding; virtualized drawer and deferred MiniSearch; bookmarks/theme persistence; 59-check headless gate; 100k capacity benchmark (433 ms import); screenshots and OG card; documentation and provenance; skill repackaged and published."
+  },
+  "tokens": {
+    "input": 408501,
+    "output": 176104,
+    "reasoning": 107713,
+    "cacheRead": 35921536,
+    "cacheWrite": 1074,
+    "total": 692318,
+    "totalWithCache": 36613854,
+    "note": "Snapshot from the OpenCode session record at 2026-11-13T09:49:18Z. total = input + output + reasoning. Cache reads/writes are context usage and are reported separately. The state-file commit, skill repo checks and closing response happen after this snapshot."
+  },
+  "cost": {
+    "usd": 0.0,
+    "note": "As reported by the OpenCode session record. Provider billing may differ."
+  },
+  "sessionId": "ses_e2be785f2ffegnZ1wsi26TCxDu",
+  "model": {
+    "name": "DeepSeek V4.1 Flash",
+    "providerID": "opencode-go",
+    "modelID": "deepseek-v4.1-flash"
+  },
+  "harness": {
+    "name": "OpenCode",
+    "version": "2.2.7",
+    "url": "https://opencode.ai"
+  },
+  "pivot": {
+    "from": "A seeded 108,000-record synthetic corpus with sharded JSON assets.",
+    "to": "An empty-by-default personal library. 100,000 is a capacity target proven by an optional benchmark fixture.",
+    "reason": "User clarified that the system should handle up to 100k, not be populated with 100k fake videos."
+  },
+  "content": {
+    "videosShipped": 0,
+    "topicsShipped": 0,
+    "maxTestedRecords": 100000,
+    "benchmarkTopics": 480,
+    "benchmarkLargestTopic": 3765,
+    "browserChecks": 59,
+    "benchmarkChecks": 11,
+    "screenshots": 9,
+    "importSources": [
+      "pasted YouTube URL",
+      "Google Takeout watch-history.json",
+      "JSON backup"
+    ],
+    "groupings": [
+      "single topic",
+      "top-24 channels + other",
+      "watch year"
+    ]
+  },
+  "verification": {
+    "browserChecks": {
+      "passed": 59,
+      "total": 59,
+      "result": "all passed"
+    },
+    "benchmarkChecks": {
+      "passed": 11,
+      "total": 11,
+      "result": "all passed"
+    },
+    "capacity": {
+      "records": 100000,
+      "importMs": 433,
+      "topics": 480,
+      "edges": 510,
+      "fps": 60,
+      "heapAfterImportMB": 126,
+      "heapWithIndexMB": 169,
+      "largestTopicRows": 3765,
+      "largestTopicRenderedRows": 10,
+      "midScrollRenderedRows": 12,
+      "largestTopicScrollHeightPx": 346380
+    },
+    "fiveThousandRowTest": {
+      "renderedAtTop": 10,
+      "renderedAfterDeepScroll": 12,
+      "scrollHeightPx": 460000
+    },
+    "consoleErrors": 0,
+    "pageErrors": 0,
+    "failedRequests": 0,
+    "horizontalOverflow": {
+      "390": false,
+      "768": false,
+      "1440": false
+    },
+    "liveSmokeTest": {
+      "httpStatus": 200,
+      "title": "Second Brain \u2014 your YouTube library in 3D",
+      "emptyState": true
+    }
+  },
+  "storage": {
+    "indexedDB": {
+      "database": "yt-second-brain",
+      "store": "library",
+      "key": "collection",
+      "version": 2
+    },
+    "localStorage": [
+      "yt-second-brain:v1 (theme, bookmarks, recents)"
+    ],
+    "originBound": true,
+    "backup": "JSON export from My library \u2192 Export backup"
+  },
+  "privacy": {
+    "accounts": false,
+    "cookies": false,
+    "analytics": false,
+    "uploads": false,
+    "metadataPath": "local server /api/oembed \u2192 YouTube oEmbed + i.ytimg.com thumbnail, stored as a data URL",
+    "historyPath": "Google Takeout watch-history.json parsed in the tab",
+    "serverBinding": "127.0.0.1"
+  },
+  "stack": {
+    "runtime": [
+      "HTML5",
+      "CSS3",
+      "ES2022"
+    ],
+    "styling": [
+      "hand-authored CSS custom properties",
+      "Tailwind Play CDN 3.4.17 (non-essential)"
+    ],
+    "graphics": [
+      "Three.js 0.180.0",
+      "instanced meshes",
+      "custom point shader",
+      "procedural visuals"
+    ],
+    "search": [
+      "MiniSearch 7.2.0 (CDN)",
+      "substring fallback"
+    ],
+    "storage": [
+      "IndexedDB",
+      "localStorage"
+    ],
+    "hosting": [
+      "GitHub Pages",
+      "GitHub Actions"
+    ],
+    "testing": [
+      "Node.js 26",
+      "puppeteer-core 24",
+      "Chrome 157 headless"
+    ],
+    "server": [
+      "Node http",
+      "local oEmbed proxy"
+    ]
+  },
+  "files": {
+    "totalTracked": 41,
+    "core": [
+      {
+        "path": "index.html",
+        "bytes": 153302,
+        "lines": 3422
+      }
+    ],
+    "docs": 8,
+    "scripts": 5,
+    "screenshots": 9
+  },
+  "screenshots": [
+    "screenshots/desktop-empty.jpg",
+    "screenshots/desktop-graph.jpg",
+    "screenshots/desktop-drawer.jpg",
+    "screenshots/desktop-library.jpg",
+    "screenshots/desktop-light.jpg",
+    "screenshots/desktop-search.jpg",
+    "screenshots/mobile-graph.jpg",
+    "screenshots/mobile-drawer.jpg",
+    "screenshots/og-cover.png"
+  ],
+  "skill": {
+    "name": "youtube-second-brain-studio",
+    "displayName": "Second Brain Studio",
+    "version": "2.0.0",
+    "path": "~/.config/opencode/skills/youtube-second-brain-studio",
+    "repository": "https://github.com/somphol/youtube-second-brain-skill",
+    "commit": "bea81d7",
+    "scaffoldTest": "Scaffolded Try Brain into a temp directory, npm install, npm run verify \u2014 59/59 checks passed."
+  },
+  "credits": {
+    "builtWith": "OpenCode 2.2.7 + DeepSeek V4.1 Flash",
+    "author": "Somphol Boonjing",
+    "libraries": "Three.js (MIT), MiniSearch (MIT), Tailwind CSS (MIT), Puppeteer (Apache-2.0)",
+    "assets": "All visuals procedural; user thumbnails stay local"
+  },
+  "operatorNotes": {
+    "githubAuth": "Reused the existing macOS Keychain credential through git's osxkeychain helper; no repeated credential prompts were triggered.",
+    "noSyntheticData": "No videos are shipped. benchmark/library-100k.json is generated on demand, gitignored and never fetched by the app.",
+    "pivot": "The first implementation shipped a 108k synthetic corpus. It was removed after the user clarified that 100k was a capacity target.",
+    "originStorage": "The library is bound to http://127.0.0.1:9000; a different host or port is a different IndexedDB.",
+    "snapshot": "This file is a provenance snapshot, not a live meter."
+  }
+}
